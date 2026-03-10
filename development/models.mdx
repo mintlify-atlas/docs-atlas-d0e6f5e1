@@ -1,0 +1,404 @@
+---
+title: 'Models'
+description: 'Eloquent models and data structures'
+icon: 'database'
+---
+
+## Overview
+
+The Laravel Films & Actors application uses a hybrid data storage approach: Eloquent models for actors stored in the database, and JSON file storage for films.
+
+## Actor Model
+
+The `Actor` model uses Laravel's Eloquent ORM to interact with the `actors` table in the database.
+
+### Model Definition
+
+```php app/Models/Actor.php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Actor extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'name',
+        'surname',
+        'birthdate',
+        'country',
+        'agency',
+        'img_url',
+    ];
+}
+```
+
+### Model Features
+
+<CardGroup cols={2}>
+  <Card title="Mass Assignment Protection" icon="shield">
+    Uses `$fillable` to define which fields can be mass-assigned
+  </Card>
+  <Card title="Factory Support" icon="industry">
+    Includes `HasFactory` trait for seeding and testing
+  </Card>
+</CardGroup>
+
+### Fillable Attributes
+
+The model allows mass assignment for the following attributes:
+
+<ParamField path="name" type="string" required>
+  Actor's first name
+</ParamField>
+
+<ParamField path="surname" type="string" required>
+  Actor's last name
+</ParamField>
+
+<ParamField path="birthdate" type="integer" required>
+  Year of birth (used for decade filtering)
+</ParamField>
+
+<ParamField path="country" type="string" required>
+  Country of origin
+</ParamField>
+
+<ParamField path="agency" type="string" required>
+  Talent agency representation
+</ParamField>
+
+<ParamField path="img_url" type="string" required>
+  URL or path to actor's profile image
+</ParamField>
+
+### Using the Actor Model
+
+<CodeGroup>
+```php Query All Actors
+// Get all actors ordered by birthdate
+$actors = Actor::orderBy('birthdate', 'asc')->get();
+
+// Convert to array
+$actorsArray = Actor::orderBy('birthdate', 'asc')->get()->toArray();
+```
+
+```php Filter by Decade
+// Get actors born in the 1980s
+$year = 1980;
+$endYear = $year + 9;
+
+$actors = Actor::whereBetween('birthdate', [$year, $endYear])
+    ->orderBy('birthdate', 'asc')
+    ->get();
+```
+
+```php Get Unique Birth Years
+// Get all unique birth years for decade calculation
+$years = Actor::select('birthdate')
+    ->distinct()
+    ->orderBy('birthdate', 'asc')
+    ->pluck('birthdate')
+    ->toArray();
+```
+
+```php Create New Actor
+// Mass assignment with fillable attributes
+$actor = Actor::create([
+    'name' => 'John',
+    'surname' => 'Doe',
+    'birthdate' => 1985,
+    'country' => 'USA',
+    'agency' => 'CAA',
+    'img_url' => '/images/actors/john-doe.jpg'
+]);
+```
+</CodeGroup>
+
+## Film Data Structure
+
+Films are stored in a JSON file at `app/Http/Controllers/films.json` rather than using an Eloquent model.
+
+### JSON Structure
+
+```json films.json
+[
+    {
+        "name": "The Shawshank Redemption",
+        "year": 1994,
+        "genre": "Drama",
+        "country": "USA",
+        "duration": "142 min",
+        "img_url": "/images/films/shawshank.jpg"
+    },
+    {
+        "name": "The Godfather",
+        "year": 1972,
+        "genre": "Crime",
+        "country": "USA",
+        "duration": "175 min",
+        "img_url": "/images/films/godfather.jpg"
+    }
+]
+```
+
+### Film Attributes
+
+<ParamField path="name" type="string" required>
+  Film title
+</ParamField>
+
+<ParamField path="year" type="integer" required>
+  Year of release (must be between 1900-2024)
+</ParamField>
+
+<ParamField path="genre" type="string" required>
+  Film genre (Drama, Action, Comedy, etc.)
+</ParamField>
+
+<ParamField path="country" type="string" required>
+  Country of production
+</ParamField>
+
+<ParamField path="duration" type="string" required>
+  Film duration (e.g., "142 min")
+</ParamField>
+
+<ParamField path="img_url" type="string" required>
+  URL or path to film poster image
+</ParamField>
+
+### Working with Film Data
+
+<CodeGroup>
+```php Read Films
+// FilmController method to read all films
+public static function readFilms(): array
+{
+    $jsonFile = __DIR__ . '/films.json';
+
+    if (!file_exists($jsonFile)) {
+        return [];
+    }
+
+    $films = json_decode(file_get_contents($jsonFile), true);
+
+    return is_array($films) ? $films : [];
+}
+```
+
+```php Filter Films
+// Filter films by year
+$year = 2000;
+$films = FilmController::readFilms();
+$filtered = array_filter($films, function($film) use ($year) {
+    return $film['year'] == $year;
+});
+```
+
+```php Sort Films
+// Sort films by year descending
+$films = FilmController::readFilms();
+usort($films, function($a, $b) {
+    return $b['year'] <=> $a['year'];
+});
+```
+
+```php Add New Film
+// Add a new film to the JSON file
+$films = FilmController::readFilms();
+
+$newFilm = [
+    'name' => 'Inception',
+    'year' => 2010,
+    'genre' => 'Sci-Fi',
+    'country' => 'USA',
+    'duration' => '148 min',
+    'img_url' => '/images/films/inception.jpg'
+];
+
+$films[] = $newFilm;
+file_put_contents($jsonFile, json_encode($films, JSON_PRETTY_PRINT));
+```
+</CodeGroup>
+
+## Data Storage Comparison
+
+<CardGroup cols={2}>
+  <Card title="Actor Model (Database)" icon="database">
+    - Uses MySQL database
+    - Eloquent ORM queries
+    - Efficient filtering and sorting
+    - Supports relationships
+    - Better for large datasets
+  </Card>
+  <Card title="Film Data (JSON)" icon="file-code">
+    - Uses JSON file storage
+    - Manual file operations
+    - Array-based filtering
+    - Simple structure
+    - Easy to read and edit
+  </Card>
+</CardGroup>
+
+## Why Different Storage Methods?
+
+The application demonstrates both approaches:
+
+<Steps>
+  <Step title="Educational Purpose">
+    Shows developers both file-based and database storage patterns
+  </Step>
+  <Step title="Flexibility">
+    Films can be quickly edited by modifying JSON without database migrations
+  </Step>
+  <Step title="Performance Comparison">
+    Illustrates the performance differences between file and database operations
+  </Step>
+  <Step title="Migration Path">
+    Films could be migrated to database in the future with a Film model
+  </Step>
+</Steps>
+
+## Creating a Film Model (Future Enhancement)
+
+If you wanted to migrate films to the database, here's how you could create a Film model:
+
+<CodeGroup>
+```php Migration
+// database/migrations/xxxx_create_films_table.php
+Schema::create('films', function (Blueprint $table) {
+    $table->id();
+    $table->string('name');
+    $table->integer('year');
+    $table->string('genre');
+    $table->string('country');
+    $table->string('duration');
+    $table->string('img_url');
+    $table->timestamps();
+});
+```
+
+```php Model
+// app/Models/Film.php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Film extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'name',
+        'year',
+        'genre',
+        'country',
+        'duration',
+        'img_url',
+    ];
+}
+```
+
+```php Updated Controller
+// app/Http/Controllers/FilmController.php
+public static function readFilms(): array
+{
+    return Film::orderBy('year', 'desc')->get()->toArray();
+}
+
+public function listFilmsByYear($year = null)
+{
+    if (is_null($year)) {
+        $films = Film::all();
+    } else {
+        $films = Film::where('year', $year)->get();
+    }
+    
+    return view("films.list", [
+        "films" => $films,
+        "title" => "Films from $year"
+    ]);
+}
+```
+</CodeGroup>
+
+## Model Best Practices
+
+<Steps>
+  <Step title="Always define fillable attributes">
+    Prevents mass assignment vulnerabilities
+  </Step>
+  <Step title="Use appropriate data types">
+    Store dates as integers or date types for easier querying
+  </Step>
+  <Step title="Add validation rules">
+    Validate data before saving to ensure data integrity
+  </Step>
+  <Step title="Consider relationships">
+    Plan for future relationships (e.g., actors belonging to films)
+  </Step>
+  <Step title="Use factories for testing">
+    Include HasFactory trait for easy test data generation
+  </Step>
+</Steps>
+
+## Data Validation
+
+Both storage methods implement validation:
+
+<CodeGroup>
+```php Actor Validation (Model)
+// In a form request or controller
+$validated = $request->validate([
+    'name' => 'required|string|max:255',
+    'surname' => 'required|string|max:255',
+    'birthdate' => 'required|integer|min:1900|max:2024',
+    'country' => 'required|string|max:255',
+    'agency' => 'required|string|max:255',
+    'img_url' => 'required|string',
+]);
+
+Actor::create($validated);
+```
+
+```php Film Validation (JSON)
+// In FilmController::createFile()
+$year = (int)$_POST['year'];
+if ($year < 1900 || $year > 2024) {
+    \Log::error("Attempted to add film with invalid year: $year");
+    return view('welcome', [
+        'error' => 'El año de la película debe estar entre 1900 y 2024'
+    ]);
+}
+
+// Check for duplicates
+foreach ($films as $film) {
+    if (strcasecmp($film['name'], $_POST['name']) === 0) {
+        return view('welcome', [
+            'error' => 'La película ya existe en la lista'
+        ]);
+    }
+}
+```
+</CodeGroup>
+
+<Note>
+  Consider standardizing validation by creating Form Request classes for both actors and films.
+</Note>
+
+## Summary
+
+The Laravel Films & Actors application uses:
+
+- **Actor Model**: Eloquent ORM with database storage for scalable, queryable data
+- **Film JSON**: File-based storage for simple, editable data structure
+
+Both approaches are valid and demonstrate different aspects of Laravel development. The Actor model showcases best practices for production applications, while the Film JSON structure shows how to work with file-based data when appropriate.

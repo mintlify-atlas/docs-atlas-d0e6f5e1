@@ -1,0 +1,442 @@
+---
+title: 'Film Management'
+description: 'Comprehensive guide to managing films in Laravel Films & Actors'
+icon: 'film'
+---
+
+## Overview
+
+The Film Management system provides a complete solution for listing, filtering, sorting, and creating film entries. Films are stored in JSON format and can be filtered by year, genre, and other criteria.
+
+<Note>
+All film data is read from `films.json` in the controller directory. The application validates years between 1900 and 2024.
+</Note>
+
+## Film Data Structure
+
+Each film contains the following properties:
+
+<CardGroup cols={2}>
+  <Card title="name" icon="heading">
+    The title of the film
+  </Card>
+  <Card title="year" icon="calendar">
+    Release year (1900-2024)
+  </Card>
+  <Card title="genre" icon="masks-theater">
+    Film genre (e.g., Drama, Action)
+  </Card>
+  <Card title="country" icon="flag">
+    Country of origin
+  </Card>
+  <Card title="duration" icon="clock">
+    Film duration
+  </Card>
+  <Card title="img_url" icon="image">
+    URL to film poster image
+  </Card>
+</CardGroup>
+
+## Core Methods
+
+### Reading Films
+
+The `readFilms()` static method reads all films from the JSON data source:
+
+```php FilmController.php
+public static function readFilms(): array
+{
+    $jsonFile = __DIR__ . '/films.json';
+
+    if (!file_exists($jsonFile)) {
+        return [];
+    }
+
+    $films = json_decode(file_get_contents($jsonFile), true);
+
+    return is_array($films) ? $films : [];
+}
+```
+
+### Listing All Films
+
+Display all available films without any filtering:
+
+```php FilmController.php
+public function listAllFilms()
+{
+    $title = "Listado de todas las películas";
+   
+    $films = FilmController::readFilms();
+
+    if (empty($films)) {
+        $title = "No hay películas disponibles";
+        return view("films.list", [
+            "films" => [],
+            "title" => $title
+        ]);
+    }
+
+    return view("films.list", [
+        "films" => $films,
+        "title" => $title
+    ]);
+}
+```
+
+**Route:**
+```php
+Route::get('allFilms/{year?}/{genre?}', [FilmController::class, "listAllFilms"])
+    ->name('allFilms');
+```
+
+**URL Example:**
+- `/filmout/allFilms`
+
+## Filtering Films
+
+<Tabs>
+  <Tab title="By Year">
+    Filter films released in a specific year:
+
+    ```php FilmController.php
+    public function listFilmsByYear($year = null)
+    {
+        $films_filtered = [];
+        $title = "Listado de películas por año";
+
+        $films = FilmController::readFilms();
+
+        if (is_null($year)) {
+            $title = "Listado de todas las películas (sin filtrar por año)";
+            return view("films.list", ["films" => $films, "title" => $title]);
+        }
+
+        foreach ($films as $film) {
+            if ($film['year'] == $year) {
+                $films_filtered[] = $film;
+            }
+        }
+
+        $title = "Listado de películas del año $year";
+        return view("films.list", ["films" => $films_filtered, "title" => $title]);
+    }
+    ```
+
+    **Route:**
+    ```php
+    Route::get('filmsByYear/{year?}', [FilmController::class, "listFilmsByYear"])
+        ->name('filmsByYear');
+    ```
+
+    **URL Examples:**
+    - `/filmout/filmsByYear/2020` - Films from 2020
+    - `/filmout/filmsByYear` - All films (no filter)
+  </Tab>
+
+  <Tab title="By Genre">
+    Filter films by genre with case-insensitive matching:
+
+    ```php FilmController.php
+    public function listFilmsByGenre($genre = null)
+    {
+        $films_filtered = [];
+        $title = "Listado de películas por género";
+
+        $films = FilmController::readFilms();
+
+        if (is_null($genre)) {
+            $title = "Listado de todas las películas (sin filtrar por género)";
+            return view("films.list", ["films" => $films, "title" => $title]);
+        }
+
+        foreach ($films as $film) {
+            if (strtolower($film['genre']) == strtolower($genre)) {
+                $films_filtered[] = $film;
+            }
+        }
+
+        $title = "Listado de películas del género $genre";
+        return view("films.list", ["films" => $films_filtered, "title" => $title]);
+    }
+    ```
+
+    **Route:**
+    ```php
+    Route::get('filmsByGenre/{genre?}', [FilmController::class, "listFilmsByGenre"])
+        ->name('filmsByGenre');
+    ```
+
+    **URL Examples:**
+    - `/filmout/filmsByGenre/drama` - Drama films
+    - `/filmout/filmsByGenre/Action` - Action films (case-insensitive)
+  </Tab>
+
+  <Tab title="Old Films">
+    List films released before a specific year (default: 2000):
+
+    ```php FilmController.php
+    public function listOldFilms($year = null)
+    {        
+        $old_films = [];
+        if (is_null($year))
+            $year = 2000;
+    
+        $title = "Listado de Pelis Antiguas (Antes de $year)";    
+        $films = FilmController::readFilms();
+
+        foreach ($films as $film) {
+            if ($film['year'] < $year)
+                $old_films[] = $film;
+        }
+        return view('films.list', ["films" => $old_films, "title" => $title]);
+    }
+    ```
+
+    **Route:**
+    ```php
+    Route::get('oldFilms/{year?}', [FilmController::class, "listOldFilms"])
+        ->name('oldFilms');
+    ```
+
+    **URL Examples:**
+    - `/filmout/oldFilms` - Films before 2000
+    - `/filmout/oldFilms/1990` - Films before 1990
+  </Tab>
+
+  <Tab title="New Films">
+    List films released in or after a specific year (default: 2000):
+
+    ```php FilmController.php
+    public function listNewFilms($year = null)
+    {
+        $new_films = [];
+        if (is_null($year))
+            $year = 2000;
+
+        $title = "Listado de Pelis Nuevas (Después de $year)";
+        $films = FilmController::readFilms();
+
+        foreach ($films as $film) {
+            if ($film['year'] >= $year)
+                $new_films[] = $film;
+        }
+        return view('films.list', ["films" => $new_films, "title" => $title]);
+    }
+    ```
+
+    **Route:**
+    ```php
+    Route::get('newFilms/{year?}', [FilmController::class, "listNewFilms"])
+        ->name('newFilms');
+    ```
+
+    **URL Examples:**
+    - `/filmout/newFilms` - Films from 2000 onwards
+    - `/filmout/newFilms/2010` - Films from 2010 onwards
+  </Tab>
+</Tabs>
+
+## Sorting and Counting
+
+### Sort Films by Year
+
+Sort all films by release year in descending order:
+
+```php FilmController.php
+public function sortFilms()
+{
+    $films_sort = [];
+    $films = self::readFilms();
+
+    usort($films, function($a, $b) {
+        return $b['year'] <=> $a['year'];
+    });
+
+    $films_sort = $films;
+    $title = "Peliculas ordenadas";
+    return view("films.list", ["films" => $films_sort, "title" => $title]);
+}
+```
+
+**Route:**
+```php
+Route::get('/sortFilms', [FilmController::class, 'sortFilms']);
+```
+
+**URL:** `/filmout/sortFilms`
+
+### Count Films
+
+Get the total number of films in the database:
+
+```php FilmController.php
+public function countFilms()
+{
+    $films = self::readFilms(); 
+    $count = count($films);
+    $title = "Total de películas";
+
+    return view('films.count', ['count' => $count, 'title' => $title]);     
+}
+```
+
+**Route:**
+```php
+Route::get('/countFilms', [FilmController::class, 'countFilms']);
+```
+
+**URL:** `/filmout/countFilms`
+
+## Adding New Films
+
+<Warning>
+Before adding a film, the system validates:
+- Film name doesn't already exist (case-insensitive)
+- Year is between 1900 and 2024
+- All required fields are provided
+</Warning>
+
+### Create Film Method
+
+```php FilmController.php
+public function createFile(Request $request)
+{
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $uploadDir = __DIR__ . '/uploads/';
+        $jsonFile = __DIR__ . '/films.json'; 
+
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        $films = [];
+        if (file_exists($jsonFile)) {
+            $films = json_decode(file_get_contents($jsonFile), true);
+        }
+
+        // Check for duplicate film names
+        foreach ($films as $film) {
+            if (strcasecmp($film['name'], $_POST['name']) === 0) {
+                return view('welcome', [
+                    'error' => 'La película ya existe en la lista'
+                ]);
+            }
+        }
+
+        // Validate year range
+        $year = (int)$_POST['year'];
+        if ($year < 1900 || $year > 2024) {
+            \Log::error("Attempted to add film with invalid year: $year");
+            return view('welcome', [
+                'error' => 'El año de la película debe estar entre 1900 y 2024'
+            ]);
+        }
+
+        $newFilm = [
+            'name' => $_POST['name'],
+            'year' => $year,
+            'genre' => $_POST['genre'],
+            'country' => $_POST['country'],
+            'duration' => $_POST['duration'],
+            'img_url' => $_POST['img_url']
+        ];
+
+        $films[] = $newFilm;
+
+        $saved = file_put_contents($jsonFile, json_encode($films, JSON_PRETTY_PRINT));
+
+        if ($saved == false) {
+            return view('welcome', ['error' => 'Error saving the film list']);
+        }
+
+        return $this->listAllFilms();
+    }   
+}
+```
+
+**Route:**
+```php
+Route::post('/add-film', [FilmController::class, 'createFile'])
+    ->name('filmin.addFilm');
+```
+
+**URL:** `POST /filmin/add-film`
+
+## Route Protection
+
+Film routes under the `filmout` prefix are protected by the `ValidateYear` middleware:
+
+```php routes/web.php
+Route::middleware('year')->group(function() {
+    Route::group(['prefix'=>'filmout'], function(){
+        Route::get('oldFilms/{year?}', [FilmController::class, "listOldFilms"]);
+        Route::get('newFilms/{year?}', [FilmController::class, "listNewFilms"]);
+        Route::get('filmsByYear/{year?}', [FilmController::class, "listFilmsByYear"]);
+        Route::get('filmsByGenre/{genre?}', [FilmController::class, "listFilmsByGenre"]);
+        // ... more routes
+    });
+});
+```
+
+See the [Filtering](/features/filtering) page for details on year validation middleware.
+
+## View Integration
+
+Films are displayed using the `films.list` Blade template:
+
+```blade films/list.blade.php
+<h1>{{$title}}</h1>
+
+@if(empty($films))
+    <FONT COLOR="red">No se ha encontrado ninguna película</FONT>
+@else
+    <table border="1">
+        <tr>
+            @foreach($films as $film)
+                @foreach(array_keys($film) as $key)
+                    <th>{{$key}}</th>
+                @endforeach
+                @break
+            @endforeach
+        </tr>
+
+        @foreach($films as $film)
+            <tr>
+                <td>{{$film['name']}}</td>
+                <td>{{$film['year']}}</td>
+                <td>{{$film['genre']}}</td>
+                <td>{{$film['country']}}</td>
+                <td>{{$film['duration']}}</td>
+                <td><img src={{$film['img_url']}} style="width: 100px; height: 120px;" /></td>
+            </tr>
+        @endforeach
+    </table>
+@endif
+```
+
+## Complete Route Reference
+
+<Accordion title="All Film Routes">
+  | Method | URL | Controller Action | Description |
+  |--------|-----|-------------------|-------------|
+  | GET | `/filmout/oldFilms/{year?}` | `listOldFilms` | Films before year (default: 2000) |
+  | GET | `/filmout/newFilms/{year?}` | `listNewFilms` | Films from year onwards (default: 2000) |
+  | GET | `/filmout/allFilms/{year?}/{genre?}` | `listAllFilms` | All films |
+  | GET | `/filmout/filmsByYear/{year?}` | `listFilmsByYear` | Films from specific year |
+  | GET | `/filmout/filmsByGenre/{genre?}` | `listFilmsByGenre` | Films by genre |
+  | GET | `/filmout/countFilms` | `countFilms` | Total film count |
+  | GET | `/filmout/sortFilms` | `sortFilms` | Films sorted by year |
+  | POST | `/filmin/add-film` | `createFile` | Add new film |
+</Accordion>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Actor Management" icon="user" href="/features/actors">
+    Learn about managing actors and their data
+  </Card>
+  <Card title="Filtering & Validation" icon="filter" href="/features/filtering">
+    Understand middleware validation for years and URLs
+  </Card>
+</CardGroup>

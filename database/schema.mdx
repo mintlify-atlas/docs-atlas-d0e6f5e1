@@ -1,0 +1,263 @@
+---
+title: 'Database Schema'
+description: 'Comprehensive overview of the Films & Actors database structure'
+icon: 'database'
+---
+
+## Overview
+
+The Laravel Films & Actors application uses a relational database with three core tables: `films`, `actors`, and a pivot table `films_actor` to manage the many-to-many relationship between films and actors.
+
+<Note>
+All tables use Laravel's default timestamps (`created_at`, `updated_at`) for tracking record creation and modification times.
+</Note>
+
+## Database Diagram
+
+```
+┌─────────────────┐         ┌──────────────────┐         ┌─────────────────┐
+│     films       │         │   films_actor    │         │     actors      │
+├─────────────────┤         ├──────────────────┤         ├─────────────────┤
+│ id (PK)         │◄────────┤ film_id (FK)     │         │ id (PK)         │
+│ name            │         │ actor_id (FK)    ├────────►│ name            │
+│ year            │         │ created_at       │         │ surname         │
+│ genre           │         │ updated_at       │         │ birthdate       │
+│ country         │         └──────────────────┘         │ country         │
+│ duration        │                                      │ agency          │
+│ img_url         │                                      │ img_url         │
+│ created_at      │                                      │ created_at      │
+│ updated_at      │                                      │ updated_at      │
+└─────────────────┘                                      └─────────────────┘
+```
+
+## Tables
+
+<Tabs>
+  <Tab title="films">
+    ### Films Table
+    
+    The `films` table stores movie information including metadata and media references.
+    
+    | Column | Type | Length | Nullable | Description |
+    |--------|------|--------|----------|-------------|
+    | `id` | bigIncrements | - | No | Primary key |
+    | `name` | string | 100 | No | Film title |
+    | `year` | year | - | No | Release year |
+    | `genre` | string | 50 | No | Film genre (Action, Drama, etc.) |
+    | `country` | string | 30 | No | Country of origin |
+    | `duration` | integer | - | No | Duration in minutes |
+    | `img_url` | string | 255 | No | Image URL for poster |
+    | `created_at` | timestamp | - | Yes | Record creation timestamp |
+    | `updated_at` | timestamp | - | Yes | Record update timestamp |
+    
+    **Indexes:**
+    - Primary key on `id`
+    
+    **Relationships:**
+    - Many-to-many with `actors` through `films_actor`
+    
+    <CodeGroup>
+    ```php Migration
+    Schema::create('films', function (Blueprint $table) {
+        $table->bigIncrements('id');    
+        $table->string('name', 100); 
+        $table->year('year');
+        $table->string('genre',50);
+        $table->string('country', 30);
+        $table->integer('duration');
+        $table->string('img_url', 255);
+        $table->timestamps();
+    });
+    ```
+    
+    ```sql SQL Equivalent
+    CREATE TABLE films (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        year YEAR NOT NULL,
+        genre VARCHAR(50) NOT NULL,
+        country VARCHAR(30) NOT NULL,
+        duration INT NOT NULL,
+        img_url VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP NULL,
+        updated_at TIMESTAMP NULL
+    );
+    ```
+    </CodeGroup>
+  </Tab>
+  
+  <Tab title="actors">
+    ### Actors Table
+    
+    The `actors` table stores actor/actress information including personal details and agency representation.
+    
+    | Column | Type | Length | Nullable | Description |
+    |--------|------|--------|----------|-------------|
+    | `id` | bigIncrements | - | No | Primary key |
+    | `name` | string | 30 | No | First name |
+    | `surname` | string | 30 | No | Last name |
+    | `birthdate` | year | - | No | Birth year |
+    | `country` | string | 30 | No | Country of origin |
+    | `agency` | string | 50 | Yes | Talent agency name (optional) |
+    | `img_url` | string | 255 | No | Image URL for headshot |
+    | `created_at` | timestamp | - | Yes | Record creation timestamp |
+    | `updated_at` | timestamp | - | Yes | Record update timestamp |
+    
+    **Indexes:**
+    - Primary key on `id`
+    
+    **Relationships:**
+    - Many-to-many with `films` through `films_actor`
+    
+    <CodeGroup>
+    ```php Migration
+    Schema::create('actors', function (Blueprint $table) {
+        $table->bigIncrements('id');    
+        $table->string('name', 30); 
+        $table->string('surname', 30);
+        $table->year('birthdate');
+        $table->string('country', 30);
+        $table->string('agency', 50)->nullable();
+        $table->string('img_url', 255);
+        $table->timestamps();
+    });
+    ```
+    
+    ```sql SQL Equivalent
+    CREATE TABLE actors (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(30) NOT NULL,
+        surname VARCHAR(30) NOT NULL,
+        birthdate YEAR NOT NULL,
+        country VARCHAR(30) NOT NULL,
+        agency VARCHAR(50) NULL,
+        img_url VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP NULL,
+        updated_at TIMESTAMP NULL
+    );
+    ```
+    </CodeGroup>
+  </Tab>
+  
+  <Tab title="films_actor">
+    ### Films-Actor Pivot Table
+    
+    The `films_actor` table creates a many-to-many relationship between films and actors, allowing multiple actors per film and multiple films per actor.
+    
+    | Column | Type | Length | Nullable | Description |
+    |--------|------|--------|----------|-------------|
+    | `id` | bigIncrements | - | No | Primary key |
+    | `film_id` | unsignedBigInteger | - | No | Foreign key to films.id |
+    | `actor_id` | unsignedBigInteger | - | No | Foreign key to actors.id |
+    | `created_at` | timestamp | - | Yes | Record creation timestamp |
+    | `updated_at` | timestamp | - | Yes | Record update timestamp |
+    
+    **Indexes:**
+    - Primary key on `id`
+    - Unique composite index on `[film_id, actor_id]`
+    
+    **Foreign Keys:**
+    - `film_id` references `films.id` (CASCADE on delete)
+    - `actor_id` references `actors.id` (CASCADE on delete)
+    
+    <Warning>
+    The unique constraint on `[film_id, actor_id]` prevents duplicate actor assignments to the same film.
+    </Warning>
+    
+    <CodeGroup>
+    ```php Migration
+    Schema::create('films_actor', function (Blueprint $table) {
+        $table->bigIncrements("id"); 
+        $table->unsignedBigInteger('film_id');
+        $table->unsignedBigInteger('actor_id');
+        $table->timestamps();
+
+        $table->foreign('film_id') 
+              ->references('id') 
+              ->on('films') 
+              ->onDelete('cascade');
+
+       $table->foreign('actor_id') 
+             ->references('id') 
+             ->on('actors') 
+             ->onDelete('cascade');
+
+        $table->unique(['film_id', 'actor_id']);
+    });
+    ```
+    
+    ```sql SQL Equivalent
+    CREATE TABLE films_actor (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        film_id BIGINT UNSIGNED NOT NULL,
+        actor_id BIGINT UNSIGNED NOT NULL,
+        created_at TIMESTAMP NULL,
+        updated_at TIMESTAMP NULL,
+        UNIQUE KEY films_actor_unique (film_id, actor_id),
+        FOREIGN KEY (film_id) REFERENCES films(id) ON DELETE CASCADE,
+        FOREIGN KEY (actor_id) REFERENCES actors(id) ON DELETE CASCADE
+    );
+    ```
+    </CodeGroup>
+  </Tab>
+</Tabs>
+
+## Relationship Details
+
+<CardGroup cols={2}>
+  <Card title="Film has many Actors" icon="users">
+    Each film can have multiple actors through the `films_actor` pivot table. The relationship is defined using Laravel's `belongsToMany` method.
+  </Card>
+  
+  <Card title="Actor appears in many Films" icon="film">
+    Each actor can appear in multiple films through the `films_actor` pivot table, also using `belongsToMany`.
+  </Card>
+</CardGroup>
+
+### Cascade Behavior
+
+<Note>
+**Important:** Both foreign keys in the `films_actor` table use `CASCADE` on delete. This means:
+- Deleting a film will automatically remove all associated actor relationships
+- Deleting an actor will automatically remove all film relationships for that actor
+</Note>
+
+## Data Constraints
+
+### Films Table
+- `name`: Maximum 100 characters
+- `genre`: Maximum 50 characters
+- `country`: Maximum 30 characters
+- `duration`: Integer (typically in minutes)
+- `img_url`: Maximum 255 characters
+
+### Actors Table
+- `name`: Maximum 30 characters
+- `surname`: Maximum 30 characters
+- `country`: Maximum 30 characters
+- `agency`: Maximum 50 characters (nullable)
+- `img_url`: Maximum 255 characters
+
+## Migration Files
+
+The schema is defined across three migration files:
+
+1. `2026_01_27_153908_films.php` - Creates films table
+2. `2026_01_27_154730_actors.php` - Creates actors table
+3. `2026_01_27_160556_films_actor.php` - Creates pivot table with foreign keys
+
+<Warning>
+Migrations must run in the correct order. The pivot table migration depends on both `films` and `actors` tables existing first.
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Migrations" icon="arrows-rotate" href="/database/migrations">
+    Learn how to run and manage database migrations
+  </Card>
+  
+  <Card title="Seeders" icon="seedling" href="/database/seeders">
+    Populate your database with test data
+  </Card>
+</CardGroup>

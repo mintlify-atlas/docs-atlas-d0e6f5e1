@@ -1,0 +1,75 @@
+---
+title: 'Count Films'
+api: 'GET /filmout/countFilms'
+description: 'Get the total number of films in the database'
+---
+
+## Overview
+
+This endpoint returns the total count of films stored in the database. It provides a simple way to get the total number of films without retrieving all film data.
+
+## Endpoint
+
+```
+GET /filmout/countFilms
+```
+
+## Path Parameters
+
+This endpoint does not accept any path parameters.
+
+## Middleware
+
+<Note>
+  This endpoint is protected by the `year` middleware group, though it does not use any year parameters.
+</Note>
+
+## Response
+
+Returns a rendered view (`films.count`) with the following data:
+
+<ResponseField name="count" type="integer">
+  The total number of films in the database
+</ResponseField>
+
+<ResponseField name="title" type="string">
+  Display title for the view: "Total de películas"
+</ResponseField>
+
+## Examples
+
+<CodeGroup>
+
+```bash Get film count
+curl http://localhost:8000/filmout/countFilms
+```
+
+</CodeGroup>
+
+## Implementation Details
+
+- **Controller Method**: `FilmController::countFilms()`
+- **View**: `films.count`
+- **Logic**: Uses PHP's `count()` function on the films array returned by `readFilms()`
+
+## Example Response Data
+
+When calling `/filmout/countFilms`, the view receives:
+
+```json
+{
+  "count": 42,
+  "title": "Total de películas"
+}
+```
+
+## Use Cases
+
+- Dashboard statistics
+- Database health checks
+- Pagination metadata
+- Quick database size verification
+
+<Note>
+  This endpoint counts all films in the database regardless of year, genre, or any other attribute.
+</Note>

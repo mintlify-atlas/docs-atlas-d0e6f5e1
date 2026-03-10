@@ -1,0 +1,139 @@
+---
+title: 'List Films by Genre'
+api: 'GET /filmout/filmsByGenre/{genre?}'
+description: 'Retrieve films of a specific genre'
+---
+
+## Overview
+
+This endpoint returns all films from the database that match the specified genre. The genre matching is case-insensitive. If no genre is provided, it returns all films without filtering.
+
+## Endpoint
+
+```
+GET /filmout/filmsByGenre/{genre?}
+```
+
+## Path Parameters
+
+<ParamField path="genre" type="string" optional>
+  The genre to filter films by. Genre matching is case-insensitive.
+  
+  - **Default**: If omitted, returns all films without genre filtering
+  - **Case Sensitivity**: Case-insensitive ("Drama" matches "drama", "DRAMA", etc.)
+  - **Examples**: Drama, Action, Sci-Fi, Comedy, Thriller
+</ParamField>
+
+## Response
+
+Returns a rendered view (`films.list`) with the following data:
+
+<ResponseField name="films" type="array">
+  Array of film objects that match the specified genre (case-insensitive)
+  
+  <ResponseField name="name" type="string">
+    The film's title
+  </ResponseField>
+  
+  <ResponseField name="year" type="integer">
+    The release year of the film
+  </ResponseField>
+  
+  <ResponseField name="genre" type="string">
+    The film's genre
+  </ResponseField>
+  
+  <ResponseField name="country" type="string">
+    Country of origin
+  </ResponseField>
+  
+  <ResponseField name="duration" type="string">
+    Film duration
+  </ResponseField>
+  
+  <ResponseField name="img_url" type="string">
+    URL to the film's poster image
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="title" type="string">
+  Display title for the view:
+  - "Listado de películas del género {genre}" when genre is provided
+  - "Listado de todas las películas (sin filtrar por género)" when genre is omitted
+</ResponseField>
+
+## Examples
+
+<CodeGroup>
+
+```bash Filter by Drama
+curl http://localhost:8000/filmout/filmsByGenre/Drama
+```
+
+```bash Filter by Sci-Fi
+curl http://localhost:8000/filmout/filmsByGenre/Sci-Fi
+```
+
+```bash Case-insensitive matching
+curl http://localhost:8000/filmout/filmsByGenre/action
+```
+
+```bash No filter (all films)
+curl http://localhost:8000/filmout/filmsByGenre
+```
+
+</CodeGroup>
+
+## Implementation Details
+
+- **Controller Method**: `FilmController::listFilmsByGenre($genre = null)`
+- **View**: `films.list`
+- **Route Name**: `filmsByGenre`
+- **Filter Logic**: Returns films where `strtolower($film['genre']) == strtolower($genre)`
+
+<Note>
+  Genre matching is **case-insensitive**. The controller converts both the stored genre and the search parameter to lowercase before comparison.
+</Note>
+
+## Behavior Differences
+
+| Scenario | Filter Applied | Title |
+|----------|----------------|-------|
+| `/filmsByGenre/Drama` | Only Drama films | "Listado de películas del género Drama" |
+| `/filmsByGenre` | No filter | "Listado de todas las películas (sin filtrar por género)" |
+
+## Case Insensitivity Examples
+
+All of these requests will return the same results:
+- `/filmout/filmsByGenre/Drama`
+- `/filmout/filmsByGenre/drama`
+- `/filmout/filmsByGenre/DRAMA`
+- `/filmout/filmsByGenre/DRaMA`
+
+## Example Response Data
+
+When calling `/filmout/filmsByGenre/Sci-Fi`, the view receives:
+
+```json
+{
+  "films": [
+    {
+      "name": "Inception",
+      "year": 2010,
+      "genre": "Sci-Fi",
+      "country": "USA",
+      "duration": "148 min",
+      "img_url": "/images/inception.jpg"
+    },
+    {
+      "name": "The Matrix",
+      "year": 1999,
+      "genre": "Sci-Fi",
+      "country": "USA",
+      "duration": "136 min",
+      "img_url": "/images/matrix.jpg"
+    }
+  ],
+  "title": "Listado de películas del género Sci-Fi"
+}
+```

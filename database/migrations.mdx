@@ -1,0 +1,395 @@
+---
+title: 'Database Migrations'
+description: 'Managing database schema changes with Laravel migrations'
+icon: 'arrows-rotate'
+---
+
+## Overview
+
+Laravel migrations provide a version-controlled way to manage your database schema. The Films & Actors application uses three migration files to create the database structure.
+
+<Note>
+Migrations are stored in `database/migrations/` and run in chronological order based on their timestamp prefix.
+</Note>
+
+## Migration Files
+
+The application includes three migration files that must run in a specific order:
+
+<CardGroup cols={3}>
+  <Card title="Films Table" icon="1">
+    **2026_01_27_153908_films.php**
+    
+    Creates the films table
+  </Card>
+  
+  <Card title="Actors Table" icon="2">
+    **2026_01_27_154730_actors.php**
+    
+    Creates the actors table
+  </Card>
+  
+  <Card title="Pivot Table" icon="3">
+    **2026_01_27_160556_films_actor.php**
+    
+    Creates the relationship table
+  </Card>
+</CardGroup>
+
+## Migration Details
+
+<Tabs>
+  <Tab title="Films Migration">
+    ### Films Table Migration
+    
+    **File:** `database/migrations/2026_01_27_153908_films.php`
+    
+    This migration creates the `films` table with all necessary columns for storing movie information.
+    
+    ```php
+    <?php
+
+    use Illuminate\Database\Migrations\Migration;
+    use Illuminate\Database\Schema\Blueprint;
+    use Illuminate\Support\Facades\Schema;
+
+    return new class extends Migration
+    {
+        /**
+         * Run the migrations.
+         */
+        public function up(): void
+        {
+            Schema::create('films', function (Blueprint $table) {
+                $table->bigIncrements('id');    
+                $table->string('name', 100); 
+                $table->year('year');
+                $table->string('genre',50);
+                $table->string('country', 30);
+                $table->integer('duration');
+                $table->string('img_url', 255);
+                $table->timestamps();
+            });
+        }
+
+        /**
+         * Reverse the migrations.
+         */
+        public function down(): void
+        {
+            Schema::dropIfExists('films');
+        }
+    };
+    ```
+    
+    **Column Breakdown:**
+    - `bigIncrements('id')` - Auto-incrementing primary key
+    - `string('name', 100)` - Film title (max 100 chars)
+    - `year('year')` - Release year
+    - `string('genre', 50)` - Genre classification
+    - `string('country', 30)` - Country of origin
+    - `integer('duration')` - Duration in minutes
+    - `string('img_url', 255)` - Image URL for poster
+    - `timestamps()` - created_at and updated_at columns
+  </Tab>
+  
+  <Tab title="Actors Migration">
+    ### Actors Table Migration
+    
+    **File:** `database/migrations/2026_01_27_154730_actors.php`
+    
+    This migration creates the `actors` table with personal and professional information about actors.
+    
+    ```php
+    <?php
+
+    use Illuminate\Database\Migrations\Migration;
+    use Illuminate\Database\Schema\Blueprint;
+    use Illuminate\Support\Facades\Schema;
+
+    return new class extends Migration
+    {
+        /**
+         * Run the migrations.
+         */
+        public function up(): void
+        {
+            Schema::create('actors', function (Blueprint $table) {
+                $table->bigIncrements('id');    
+                $table->string('name', 30); 
+                $table->string('surname', 30);
+                $table->year('birthdate');
+                $table->string('country', 30);
+                $table->string('agency', 50)->nullable();
+                $table->string('img_url', 255);
+                $table->timestamps();
+            });
+        }
+
+        /**
+         * Reverse the migrations.
+         */
+        public function down(): void
+        {
+            Schema::dropIfExists('actors');
+        }
+    };
+    ```
+    
+    **Column Breakdown:**
+    - `bigIncrements('id')` - Auto-incrementing primary key
+    - `string('name', 30)` - First name
+    - `string('surname', 30)` - Last name
+    - `year('birthdate')` - Birth year
+    - `string('country', 30)` - Country of origin
+    - `string('agency', 50)->nullable()` - Optional talent agency
+    - `string('img_url', 255)` - Image URL for headshot
+    - `timestamps()` - created_at and updated_at columns
+  </Tab>
+  
+  <Tab title="Pivot Migration">
+    ### Films-Actor Pivot Migration
+    
+    **File:** `database/migrations/2026_01_27_160556_films_actor.php`
+    
+    This migration creates the many-to-many relationship table between films and actors, including foreign key constraints.
+    
+    ```php
+    <?php
+
+    use Illuminate\Database\Migrations\Migration;
+    use Illuminate\Database\Schema\Blueprint;
+    use Illuminate\Support\Facades\Schema;
+
+    return new class extends Migration
+    {
+        /**
+         * Run the migrations.
+         */
+        public function up(): void
+        {
+            Schema::create('films_actor', function (Blueprint $table) {
+                $table->bigIncrements("id"); 
+                $table->unsignedBigInteger('film_id');
+                $table->unsignedBigInteger('actor_id');
+                $table->timestamps();
+
+                $table->foreign('film_id') 
+                      ->references('id') 
+                      ->on('films') 
+                      ->onDelete('cascade');
+
+               $table->foreign('actor_id') 
+                     ->references('id') 
+                     ->on('actors') 
+                     ->onDelete('cascade');
+
+                $table->unique(['film_id', 'actor_id']);
+            });
+        }
+
+        /**
+         * Reverse the migrations.
+         */
+        public function down(): void
+        {
+            Schema::dropIfExists('films_actor');
+        }
+    };
+    ```
+    
+    **Key Features:**
+    - **Foreign Keys:** Both film_id and actor_id reference their parent tables
+    - **Cascade Deletion:** Deleting a film or actor removes associated relationships
+    - **Unique Constraint:** Prevents duplicate actor assignments to the same film
+    
+    <Warning>
+    This migration **must** run after both films and actors tables are created, or it will fail due to missing foreign key references.
+    </Warning>
+  </Tab>
+</Tabs>
+
+## Running Migrations
+
+### Fresh Installation
+
+Run all pending migrations:
+
+```bash
+php artisan migrate
+```
+
+This will execute all three migrations in chronological order:
+1. Create films table
+2. Create actors table
+3. Create films_actor pivot table with foreign keys
+
+### Migration Commands
+
+<CodeGroup>
+```bash Run Migrations
+# Run all pending migrations
+php artisan migrate
+
+# Run migrations with verbose output
+php artisan migrate -v
+```
+
+```bash Rollback Migrations
+# Rollback the last batch of migrations
+php artisan migrate:rollback
+
+# Rollback all migrations
+php artisan migrate:reset
+```
+
+```bash Fresh Migration
+# Drop all tables and re-run all migrations
+php artisan migrate:fresh
+
+# Fresh migration with seeders
+php artisan migrate:fresh --seed
+```
+
+```bash Migration Status
+# View migration status
+php artisan migrate:status
+```
+</CodeGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Order Matters" icon="list-ol">
+    Always ensure migrations run in the correct order. Foreign key constraints require parent tables to exist first.
+  </Card>
+  
+  <Card title="Never Modify" icon="lock">
+    Never modify migrations that have already been run in production. Create new migrations instead.
+  </Card>
+  
+  <Card title="Use Rollback" icon="rotate-left">
+    Implement proper `down()` methods to allow clean rollbacks during development.
+  </Card>
+  
+  <Card title="Test First" icon="vial">
+    Always test migrations on a development database before running in production.
+  </Card>
+</CardGroup>
+
+## Migration Strategy
+
+### Development Workflow
+
+1. **Create Migration**
+   ```bash
+   php artisan make:migration create_table_name
+   ```
+
+2. **Edit Migration File**
+   Define your schema in the `up()` method and rollback logic in `down()`
+
+3. **Run Migration**
+   ```bash
+   php artisan migrate
+   ```
+
+4. **Test Rollback**
+   ```bash
+   php artisan migrate:rollback
+   php artisan migrate
+   ```
+
+### Production Deployment
+
+<Warning>
+**Important:** Always backup your production database before running migrations!
+</Warning>
+
+```bash
+# 1. Backup database
+mysqldump -u user -p database > backup.sql
+
+# 2. Run migrations
+php artisan migrate --force
+
+# 3. Verify tables
+php artisan migrate:status
+```
+
+## Troubleshooting
+
+<Tabs>
+  <Tab title="Foreign Key Errors">
+    ### Foreign Key Constraint Errors
+    
+    **Error:** `SQLSTATE[HY000]: General error: 1215 Cannot add foreign key constraint`
+    
+    **Causes:**
+    - Parent table doesn't exist yet
+    - Column types don't match between parent and child
+    - Referenced column is not indexed
+    
+    **Solution:**
+    ```bash
+    # Check migration order
+    php artisan migrate:status
+    
+    # Ensure parent tables exist
+    # Verify column types match (both should be unsignedBigInteger)
+    ```
+  </Tab>
+  
+  <Tab title="Rollback Issues">
+    ### Migration Rollback Failures
+    
+    **Error:** Migration won't roll back
+    
+    **Causes:**
+    - Missing or incorrect `down()` method
+    - Foreign key constraints preventing table drops
+    - Data exists in tables
+    
+    **Solution:**
+    ```bash
+    # Force fresh migration (WARNING: deletes all data)
+    php artisan migrate:fresh
+    
+    # Or manually drop tables in reverse order
+    ```
+  </Tab>
+  
+  <Tab title="Already Exists">
+    ### Table Already Exists Error
+    
+    **Error:** `SQLSTATE[42S01]: Base table or view already exists`
+    
+    **Causes:**
+    - Migration was partially run
+    - Manual table creation
+    - Migrations table out of sync
+    
+    **Solution:**
+    ```bash
+    # Check what migrations have run
+    php artisan migrate:status
+    
+    # Option 1: Drop the table manually
+    # Option 2: Skip this migration (mark as run)
+    # Option 3: Fresh start (development only)
+    php artisan migrate:fresh
+    ```
+  </Tab>
+</Tabs>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Database Schema" icon="database" href="/database/schema">
+    View the complete database schema documentation
+  </Card>
+  
+  <Card title="Database Seeders" icon="seedling" href="/database/seeders">
+    Learn how to populate your database with test data
+  </Card>
+</CardGroup>

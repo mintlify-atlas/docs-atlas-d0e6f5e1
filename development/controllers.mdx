@@ -1,0 +1,450 @@
+---
+title: 'Controllers'
+description: 'Understanding controller logic for films and actors'
+icon: 'code'
+---
+
+## Overview
+
+The Laravel Films & Actors application uses two main controllers to handle business logic: `FilmController` for film-related operations and `ActorController` for actor management.
+
+## FilmController
+
+The `FilmController` manages all film-related operations including reading from JSON storage, filtering, sorting, and creating new films.
+
+### Data Source
+
+Films are stored in a JSON file located at `app/Http/Controllers/films.json`:
+
+```php app/Http/Controllers/FilmController.php
+/**
+ * Read films from storage
+ */
+public static function readFilms(): array
+{
+    $jsonFile = __DIR__ . '/films.json';
+
+    if (!file_exists($jsonFile)) {
+        return [];
+    }
+
+    $films = json_decode(file_get_contents($jsonFile), true);
+
+    return is_array($films) ? $films : [];
+}
+```
+
+<Note>
+  The `readFilms()` method is static, allowing it to be called from any method in the controller without instantiation.
+</Note>
+
+### Listing Films by Age
+
+<CodeGroup>
+```php Old Films
+public function listOldFilms($year = null)
+{        
+    $old_films = [];
+    if (is_null($year))
+        $year = 2000;
+    
+    $title = "Listado de Pelis Antiguas (Antes de $year)";    
+    $films = FilmController::readFilms();
+
+    foreach ($films as $film) {
+        if ($film['year'] < $year)
+            $old_films[] = $film;
+    }
+    return view('films.list', ["films" => $old_films, "title" => $title]);
+}
+```
+
+```php New Films
+public function listNewFilms($year = null)
+{
+    $new_films = [];
+    if (is_null($year))
+        $year = 2000;
+
+    $title = "Listado de Pelis Nuevas (Después de $year)";
+    $films = FilmController::readFilms();
+
+    foreach ($films as $film) {
+        if ($film['year'] >= $year)
+            $new_films[] = $film;
+    }
+    return view('films.list', ["films" => $new_films, "title" => $title]);
+}
+```
+</CodeGroup>
+
+<Steps>
+  <Step title="Default year">
+    If no year is provided, defaults to 2000 as the cutoff
+  </Step>
+  <Step title="Read films">
+    Loads all films from the JSON data source
+  </Step>
+  <Step title="Filter by year">
+    Iterates through films and filters based on comparison
+  </Step>
+  <Step title="Return view">
+    Passes filtered films and title to the view template
+  </Step>
+</Steps>
+
+### Listing All Films
+
+```php app/Http/Controllers/FilmController.php
+public function listAllFilms()
+{
+    $title = "Listado de todas las películas";
+   
+    $films = FilmController::readFilms();
+
+    if (empty($films)) {
+        $title = "No hay películas disponibles";
+        return view("films.list", [
+            "films" => [],
+            "title" => $title
+        ]);
+    }
+
+    return view("films.list", [
+        "films" => $films,
+        "title" => $title
+    ]);
+}
+```
+
+### Filtering Films
+
+<CodeGroup>
+```php By Year
+public function listFilmsByYear($year = null)
+{
+    $films_filtered = [];
+    $title = "Listado de películas por año";
+
+    $films = FilmController::readFilms();
+
+    if (is_null($year)) {
+        $title = "Listado de todas las películas (sin filtrar por año)";
+        return view("films.list", ["films" => $films, "title" => $title]);
+    }
+
+    foreach ($films as $film) {
+        if ($film['year'] == $year) {
+            $films_filtered[] = $film;
+        }
+    }
+
+    $title = "Listado de películas del año $year";
+    return view("films.list", ["films" => $films_filtered, "title" => $title]);
+}
+```
+
+```php By Genre
+public function listFilmsByGenre($genre = null)
+{
+    $films_filtered = [];
+    $title = "Listado de películas por género";
+
+    $films = FilmController::readFilms();
+
+    if (is_null($genre)) {
+        $title = "Listado de todas las películas (sin filtrar por género)";
+        return view("films.list", ["films" => $films, "title" => $title]);
+    }
+
+    foreach ($films as $film) {
+        if (strtolower($film['genre']) == strtolower($genre)) {
+            $films_filtered[] = $film;
+        }
+    }
+
+    $title = "Listado de películas del género $genre";
+    return view("films.list", ["films" => $films_filtered, "title" => $title]);
+}
+```
+</CodeGroup>
+
+<Note>
+  Genre comparison is case-insensitive using `strtolower()` for better user experience.
+</Note>
+
+### Counting Films
+
+```php app/Http/Controllers/FilmController.php
+public function countFilms()
+{
+    $films = self::readFilms(); 
+    $count = count($films);
+    $title = "Total de películas";
+
+    return view('films.count', [ 'count' => $count, 'title' => $title]);     
+}
+```
+
+### Sorting Films
+
+```php app/Http/Controllers/FilmController.php
+public function sortFilms()
+{
+    $films_sort = [];
+    $films = self::readFilms();
+
+    usort($films, function($a, $b) {
+        return $b['year'] <=> $a['year'];
+    });
+
+    $films_sort = $films;
+    $title = "Peliculas ordenadas";
+    return view("films.list", ["films" => $films_sort, "title" => $title]);
+}
+```
+
+Films are sorted in descending order by year using PHP's spaceship operator (`<=>`).
+
+### Creating Films
+
+```php app/Http/Controllers/FilmController.php
+public function createFile(Request $request ){
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+        $uploadDir = __DIR__ . '/uploads/';
+        $jsonFile = __DIR__ . '/films.json'; 
+
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        $films = [];
+        if (file_exists($jsonFile)) {
+            $films = json_decode(file_get_contents($jsonFile), true);
+        }
+
+        // Check for duplicate films
+        foreach ($films as $film) {
+            if (strcasecmp($film['name'], $_POST['name']) === 0) {
+                return view('welcome', [
+                    'error' => 'La película ya existe en la lista'
+                ]);
+            }
+        }
+
+        $targetFile = $_POST['img_url'];
+
+        // Validate year range
+        $year = (int)$_POST['year'];
+        if ($year < 1900 || $year > 2024) {
+            \Log::error("Attempted to add film with invalid year: $year");
+            return view('welcome', [
+                'error' => 'El año de la película debe estar entre 1900 y 2024'
+            ]);
+        }
+
+        // Create new film entry
+        $newFilm = [
+            'name' => $_POST['name'],
+            'year' => $year,
+            'genre' => $_POST['genre'],
+            'country' => $_POST['country'],
+            'duration' => $_POST['duration'],
+            'img_url' => $targetFile
+        ];
+
+        $films[] = $newFilm;
+
+        $saved = file_put_contents($jsonFile, json_encode($films, JSON_PRETTY_PRINT));
+
+        if ($saved == false) {
+            return view('welcome', ['error' => 'Error saving the film list']);
+        }
+
+        return $this->listAllFilms();
+    }   
+}
+```
+
+<Steps>
+  <Step title="Verify POST request">
+    Ensures the request method is POST
+  </Step>
+  <Step title="Create directories">
+    Creates upload directory if it doesn't exist
+  </Step>
+  <Step title="Check duplicates">
+    Prevents duplicate film entries (case-insensitive comparison)
+  </Step>
+  <Step title="Validate year">
+    Ensures year is between 1900-2024
+  </Step>
+  <Step title="Save to JSON">
+    Appends new film and saves with pretty printing
+  </Step>
+  <Step title="Display results">
+    Shows updated film list on success
+  </Step>
+</Steps>
+
+## ActorController
+
+The `ActorController` manages actor-related operations using Laravel's Eloquent ORM to interact with the database.
+
+### Reading Actors
+
+```php app/Http/Controllers/ActorController.php
+public static function readActors(): array
+{
+    $actors = Actor::orderBy('birthdate', 'asc')->get()->toArray();
+
+    return is_array($actors) ? $actors : [];
+}
+```
+
+Actors are retrieved from the database and ordered by birthdate in ascending order.
+
+### Getting Available Decades
+
+```php app/Http/Controllers/ActorController.php
+public static function getAvailableDecades(): array
+{
+    $years = Actor::select('birthdate')
+        ->distinct()
+        ->orderBy('birthdate', 'asc')
+        ->pluck('birthdate')
+        ->toArray();
+    
+    $decades = [];
+    foreach ($years as $y) {
+        $decade = floor($y / 10) * 10;
+        if (!in_array($decade, $decades)) {
+            $decades[] = (int)$decade;
+        }
+    }
+    return $decades;
+}
+```
+
+This method:
+1. Retrieves all unique birth years
+2. Calculates the decade for each year (e.g., 1985 → 1980)
+3. Returns an array of unique decades
+
+### Listing All Actors
+
+```php app/Http/Controllers/ActorController.php
+public function listAllActors()
+{
+    $title = "Listado de todos los actores";
+   
+    $actors = ActorController::readActors();
+
+    if (empty($actors)) {
+        $title = "No hay actores disponibles";
+        return view("actors.list", [
+            "actors" => [],
+            "title" => $title
+        ]);
+    }
+
+    return view("actors.list", [
+        "actors" => $actors,
+        "title" => $title,
+        "decades" => ActorController::getAvailableDecades(),
+        "selectedDecade" => null
+    ]);
+}
+```
+
+### Filtering Actors by Decade
+
+```php app/Http/Controllers/ActorController.php
+public function listActorsByDecade($year = null)
+{
+    $decades = ActorController::getAvailableDecades();
+
+    if (is_null($year)) {
+        $title = "Listado de todos los actores (sin filtrar por década)";
+        $actors = ActorController::readActors();
+    } else {
+        $endYear = $year + 9;
+        $title = "Listado de actores nacidos en la década de $year a $endYear";
+        $actors = Actor::whereBetween('birthdate', [$year, $endYear])
+            ->orderBy('birthdate', 'asc')
+            ->get()
+            ->toArray();
+    }
+
+    return view("actors.list", [
+        "actors" => $actors, 
+        "title" => $title, 
+        "decades" => $decades,
+        "selectedDecade" => $year
+    ]);
+}
+```
+
+<Note>
+  The decade filter uses `whereBetween()` to efficiently query actors born within a 10-year range (e.g., 1980-1989).
+</Note>
+
+## Controller Comparison
+
+<CardGroup cols={2}>
+  <Card title="FilmController" icon="film">
+    Uses JSON file storage with manual file operations and array filtering
+  </Card>
+  <Card title="ActorController" icon="user">
+    Uses Eloquent ORM with database queries and model relationships
+  </Card>
+</CardGroup>
+
+### Key Differences
+
+<ParamField path="Data Source" type="comparison">
+  - **Films**: JSON file at `app/Http/Controllers/films.json`
+  - **Actors**: MySQL database via Eloquent ORM
+</ParamField>
+
+<ParamField path="Query Methods" type="comparison">
+  - **Films**: Array iteration with `foreach` loops
+  - **Actors**: Eloquent query builder methods (`whereBetween`, `orderBy`)
+</ParamField>
+
+<ParamField path="Performance" type="comparison">
+  - **Films**: Loads entire dataset into memory
+  - **Actors**: Database-level filtering and sorting
+</ParamField>
+
+## Best Practices
+
+<Steps>
+  <Step title="Use static methods for data retrieval">
+    Both controllers use static methods for reading data, making them easily accessible
+  </Step>
+  <Step title="Provide default values">
+    Optional parameters have sensible defaults (e.g., year defaults to 2000)
+  </Step>
+  <Step title="Handle empty results gracefully">
+    Both controllers check for empty results and show appropriate messages
+  </Step>
+  <Step title="Validate input data">
+    Year ranges and duplicate entries are validated before processing
+  </Step>
+  <Step title="Use descriptive view data">
+    Dynamic titles help users understand what data they're viewing
+  </Step>
+</Steps>
+
+## Common Patterns
+
+Both controllers follow similar patterns:
+
+1. **Read data** from storage (JSON or database)
+2. **Filter data** based on parameters
+3. **Prepare view data** with title and results
+4. **Return view** with structured data
+
+This consistency makes the codebase easier to understand and maintain.

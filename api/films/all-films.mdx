@@ -1,0 +1,139 @@
+---
+title: 'List All Films'
+api: 'GET /filmout/allFilms/{year?}/{genre?}'
+description: 'Retrieve all films from the database'
+---
+
+## Overview
+
+This endpoint returns all films from the database without any filtering. Despite having optional year and genre parameters in the route definition, the controller implementation does not use these parameters and always returns all films.
+
+## Endpoint
+
+```
+GET /filmout/allFilms/{year?}/{genre?}
+```
+
+## Path Parameters
+
+<ParamField path="year" type="integer" optional>
+  **Note**: This parameter is defined in the route but not used by the controller implementation. All films are returned regardless of this value.
+  
+  - **Validation**: Must be between 1900 and 2024 if provided (enforced by ValidateYear middleware)
+</ParamField>
+
+<ParamField path="genre" type="string" optional>
+  **Note**: This parameter is defined in the route but not used by the controller implementation. All films are returned regardless of this value.
+</ParamField>
+
+## Middleware
+
+<Note>
+  This endpoint is protected by the `ValidateYear` middleware which validates that the year parameter (if provided) is:
+  - Numeric
+  - Between 1900 and 2024
+  
+  Invalid year values will redirect to the homepage.
+</Note>
+
+## Response
+
+Returns a rendered view (`films.list`) with the following data:
+
+<ResponseField name="films" type="array">
+  Array of all film objects in the database
+  
+  <ResponseField name="name" type="string">
+    The film's title
+  </ResponseField>
+  
+  <ResponseField name="year" type="integer">
+    The release year of the film
+  </ResponseField>
+  
+  <ResponseField name="genre" type="string">
+    The film's genre
+  </ResponseField>
+  
+  <ResponseField name="country" type="string">
+    Country of origin
+  </ResponseField>
+  
+  <ResponseField name="duration" type="string">
+    Film duration
+  </ResponseField>
+  
+  <ResponseField name="img_url" type="string">
+    URL to the film's poster image
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="title" type="string">
+  Display title for the view:
+  - "Listado de todas las películas" when films exist
+  - "No hay películas disponibles" when no films exist
+</ResponseField>
+
+## Examples
+
+<CodeGroup>
+
+```bash Basic request
+curl http://localhost:8000/filmout/allFilms
+```
+
+```bash With parameters (ignored by controller)
+curl http://localhost:8000/filmout/allFilms/2020/Drama
+```
+
+</CodeGroup>
+
+## Implementation Details
+
+- **Controller Method**: `FilmController::listAllFilms()`
+- **View**: `films.list`
+- **Route Name**: `allFilms`
+- **Filter Logic**: No filtering - returns all films from storage
+
+<Warning>
+  The route accepts year and genre parameters, but the controller implementation ignores them. Use `/filmout/filmsByYear/{year}` or `/filmout/filmsByGenre/{genre}` for filtered results.
+</Warning>
+
+## Empty State Handling
+
+If no films exist in the database, the endpoint returns:
+
+```json
+{
+  "films": [],
+  "title": "No hay películas disponibles"
+}
+```
+
+## Example Response Data
+
+When calling `/filmout/allFilms`, the view receives:
+
+```json
+{
+  "films": [
+    {
+      "name": "The Shawshank Redemption",
+      "year": 1994,
+      "genre": "Drama",
+      "country": "USA",
+      "duration": "142 min",
+      "img_url": "/images/shawshank.jpg"
+    },
+    {
+      "name": "Inception",
+      "year": 2010,
+      "genre": "Sci-Fi",
+      "country": "USA",
+      "duration": "148 min",
+      "img_url": "/images/inception.jpg"
+    }
+  ],
+  "title": "Listado de todas las películas"
+}
+```

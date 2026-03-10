@@ -1,0 +1,193 @@
+---
+title: 'Routes'
+description: 'Understanding the Laravel Films & Actors routing system'
+icon: 'route'
+---
+
+## Overview
+
+The Laravel Films & Actors application uses Laravel's routing system to define all web routes. Routes are organized by functionality and protected by custom middleware for validation.
+
+## Route Structure
+
+All routes are defined in `routes/web.php` and follow a clear organizational pattern:
+
+<Steps>
+  <Step title="Basic Routes">
+    Static welcome pages for the main sections
+  </Step>
+  <Step title="Film Routes">
+    Grouped under the `filmout` prefix with year validation middleware
+  </Step>
+  <Step title="Actor Routes">
+    Protected by actor validation middleware
+  </Step>
+  <Step title="Film Creation Routes">
+    Grouped under the `filmin` prefix for POST operations
+  </Step>
+</Steps>
+
+## Basic Welcome Routes
+
+These routes render the welcome pages for each section:
+
+```php routes/web.php
+Route::get('/', function () {
+    return view('index');
+});
+
+Route::get('/films', function () {
+    return view('films.welcome');
+});
+
+Route::get('/actors', function () {
+    return view('actors.welcome');
+});
+```
+
+## Film Routes (filmout prefix)
+
+All film viewing routes are grouped under the `filmout` prefix and protected by the `year` middleware:
+
+```php routes/web.php
+Route::middleware('year')->group(function() {
+    Route::group(['prefix'=>'filmout'], function(){
+        // List old films (before specified year, defaults to 2000)
+        Route::get('oldFilms/{year?}',[FilmController::class, "listOldFilms"])
+            ->name('oldFilms');
+        
+        // List new films (after specified year, defaults to 2000)
+        Route::get('newFilms/{year?}',[FilmController::class, "listNewFilms"])
+            ->name('newFilms');
+        
+        // List all films with optional year and genre filters
+        Route::get('allFilms/{year?}/{genre?}',[FilmController::class, "listAllFilms"])
+            ->name('allFilms');
+
+        // List films by year
+        Route::get('filmsByYear/{year?}', [FilmController::class, "listFilmsByYear"])
+            ->name('filmsByYear');
+        
+        // List films by genre
+        Route::get('filmsByGenre/{genre?}', [FilmController::class, "listFilmsByGenre"])
+            ->name('filmsByGenre');
+
+        // Count total films
+        Route::get('/countFilms', [FilmController::class, 'countFilms']);
+
+        // Sort films by year (descending)
+        Route::get('/sortFilms', [FilmController::class, 'sortFilms']);
+    });
+});
+```
+
+<Note>
+  All routes within this group are automatically validated by the `ValidateYear` middleware, which ensures year parameters are numeric and within the range 1900-2024.
+</Note>
+
+## Film Creation Routes (filmin prefix)
+
+Routes for adding new films are grouped under the `filmin` prefix:
+
+```php routes/web.php
+Route::prefix('filmin')->group(function () {
+    Route::post('/add-film', [FilmController::class, 'createFile'])
+        ->name('filmin.addFilm');
+});
+```
+
+## Actor Routes
+
+Actor routes are protected by the `actor` middleware for URL validation:
+
+```php routes/web.php
+Route::middleware('actor')->group(function() {
+    // List all actors
+    Route::get('allActors', [ActorController::class, "listAllActors"])
+        ->name('allActors');
+    
+    // List actors by decade of birth
+    Route::get('actorsByDecade/{year?}', [ActorController::class, "listActorsByDecade"])
+        ->name('actorsByDecade');
+});
+```
+
+## Route Parameters
+
+<CardGroup cols={2}>
+  <Card title="Optional Parameters" icon="question">
+    Most routes use optional parameters (indicated by `?`) allowing them to work with or without values
+  </Card>
+  <Card title="Named Routes" icon="tag">
+    All major routes are named using `->name()` for easy reference in views and redirects
+  </Card>
+</CardGroup>
+
+### Common Parameters
+
+<ParamField path="year" type="integer" optional>
+  Year parameter used for filtering films and actors. Must be between 1900-2024 when provided.
+</ParamField>
+
+<ParamField path="genre" type="string" optional>
+  Genre parameter for filtering films by category (e.g., Drama, Action, Comedy).
+</ParamField>
+
+## Route Middleware
+
+The application uses two custom middleware for route protection:
+
+- **`year`** - Validates year parameters on film routes (see [Middleware documentation](/development/middleware#validate-year))
+- **`actor`** - Validates year parameters on actor routes (see [Middleware documentation](/development/middleware#validate-url-actor))
+
+## Testing Routes
+
+Example URLs for testing the routing system:
+
+<CodeGroup>
+```bash Film Routes
+# List old films (before 2000)
+GET /filmout/oldFilms
+
+# List films from 1995 or earlier
+GET /filmout/oldFilms/1995
+
+# List films by year
+GET /filmout/filmsByYear/2020
+
+# List films by genre
+GET /filmout/filmsByGenre/Action
+
+# Count all films
+GET /filmout/countFilms
+
+# Sort films by year
+GET /filmout/sortFilms
+```
+
+```bash Actor Routes
+# List all actors
+GET /allActors
+
+# List actors born in the 1980s
+GET /actorsByDecade/1980
+```
+
+```bash Film Creation
+# Add a new film (POST)
+POST /filmin/add-film
+```
+</CodeGroup>
+
+## Route Groups Benefits
+
+The route grouping strategy provides several advantages:
+
+1. **Middleware Application** - Apply validation middleware to multiple routes at once
+2. **URL Prefixing** - Organize routes under logical prefixes (`filmout`, `filmin`)
+3. **Code Organization** - Keep related routes together for better maintainability
+4. **Namespace Management** - Easier to manage controller namespaces and dependencies
+
+<Note>
+  Invalid year parameters are automatically caught by middleware and redirected to the homepage with error logging.
+</Note>

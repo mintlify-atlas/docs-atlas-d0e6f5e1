@@ -1,0 +1,219 @@
+---
+title: 'Create Film'
+api: 'POST /filmin/add-film'
+description: 'Add a new film to the database'
+---
+
+## Overview
+
+This endpoint allows you to add a new film to the database. It validates that the film doesn't already exist (case-insensitive name check) and that the year is within the valid range (1900-2024).
+
+## Endpoint
+
+```
+POST /filmin/add-film
+```
+
+## Request Body Parameters
+
+<ParamField body="name" type="string" required>
+  The title of the film. Must be unique (case-insensitive check).
+  
+  - **Validation**: Checked against existing films using case-insensitive comparison
+  - **Example**: "The Dark Knight"
+</ParamField>
+
+<ParamField body="year" type="integer" required>
+  The release year of the film.
+  
+  - **Validation**: Must be between 1900 and 2024 (inclusive)
+  - **Example**: 2008
+</ParamField>
+
+<ParamField body="genre" type="string" required>
+  The genre of the film.
+  
+  - **Example**: "Action", "Drama", "Sci-Fi"
+</ParamField>
+
+<ParamField body="country" type="string" required>
+  The country of origin.
+  
+  - **Example**: "USA", "UK", "France"
+</ParamField>
+
+<ParamField body="duration" type="string" required>
+  The duration of the film.
+  
+  - **Format**: Flexible (typically "XXX min")
+  - **Example**: "152 min"
+</ParamField>
+
+<ParamField body="img_url" type="string" required>
+  URL or path to the film's poster image.
+  
+  - **Example**: "/images/dark-knight.jpg"
+</ParamField>
+
+## Response
+
+On success, redirects to the film list view showing all films.
+
+On error, returns the welcome view with an error message:
+
+<ResponseField name="error" type="string">
+  Error message describing what went wrong
+</ResponseField>
+
+## Validation Rules
+
+### Duplicate Film Check
+
+<Warning>
+  If a film with the same name already exists (case-insensitive), the request will fail with:
+  
+  **Error**: "La película ya existe en la lista"
+</Warning>
+
+### Year Range Validation
+
+<Warning>
+  The year must be between 1900 and 2024 (inclusive). Invalid years will result in:
+  
+  **Error**: "El año de la película debe estar entre 1900 y 2024"
+  
+  Invalid years are also logged to the error log.
+</Warning>
+
+### Save Failure
+
+<Warning>
+  If the film data cannot be saved to the JSON file:
+  
+  **Error**: "Error saving the film list"
+</Warning>
+
+## Examples
+
+<CodeGroup>
+
+```bash Success - Add new film
+curl -X POST http://localhost:8000/filmin/add-film \
+  -d "name=The Dark Knight" \
+  -d "year=2008" \
+  -d "genre=Action" \
+  -d "country=USA" \
+  -d "duration=152 min" \
+  -d "img_url=/images/dark-knight.jpg"
+```
+
+```bash Error - Duplicate film
+curl -X POST http://localhost:8000/filmin/add-film \
+  -d "name=inception" \
+  -d "year=2010" \
+  -d "genre=Sci-Fi" \
+  -d "country=USA" \
+  -d "duration=148 min" \
+  -d "img_url=/images/inception.jpg"
+# Returns error if "Inception" already exists (case-insensitive)
+```
+
+```bash Error - Invalid year
+curl -X POST http://localhost:8000/filmin/add-film \
+  -d "name=Future Film" \
+  -d "year=2030" \
+  -d "genre=Sci-Fi" \
+  -d "country=USA" \
+  -d "duration=120 min" \
+  -d "img_url=/images/future.jpg"
+# Returns error: year must be between 1900 and 2024
+```
+
+```bash HTML Form Example
+<form method="POST" action="/filmin/add-film">
+  <input type="text" name="name" placeholder="Film Title" required>
+  <input type="number" name="year" min="1900" max="2024" required>
+  <input type="text" name="genre" placeholder="Genre" required>
+  <input type="text" name="country" placeholder="Country" required>
+  <input type="text" name="duration" placeholder="Duration" required>
+  <input type="text" name="img_url" placeholder="Image URL" required>
+  <button type="submit">Add Film</button>
+</form>
+```
+
+</CodeGroup>
+
+## Implementation Details
+
+- **Controller Method**: `FilmController::createFile(Request $request)`
+- **Route Name**: `filmin.addFilm`
+- **Success Redirect**: Calls `listAllFilms()` to display the updated film list
+- **Error Redirect**: Returns `welcome` view with error message
+- **Storage**: Saves to `films.json` in the controller directory with `JSON_PRETTY_PRINT`
+
+## Request Method Validation
+
+<Note>
+  The controller checks for POST method using `$_SERVER['REQUEST_METHOD'] === 'POST'`. Only POST requests are processed.
+</Note>
+
+## File Storage
+
+### Storage Location
+
+- **JSON File**: `app/Http/Controllers/films.json`
+- **Upload Directory**: `app/Http/Controllers/uploads/` (created automatically if needed)
+
+### JSON Structure
+
+Films are stored as an array of objects:
+
+```json
+[
+  {
+    "name": "The Dark Knight",
+    "year": 2008,
+    "genre": "Action",
+    "country": "USA",
+    "duration": "152 min",
+    "img_url": "/images/dark-knight.jpg"
+  },
+  {
+    "name": "Inception",
+    "year": 2010,
+    "genre": "Sci-Fi",
+    "country": "USA",
+    "duration": "148 min",
+    "img_url": "/images/inception.jpg"
+  }
+]
+```
+
+## Error Logging
+
+<Note>
+  Invalid year attempts are logged to Laravel's error log:
+  
+  ```
+  Attempted to add film with invalid year: 2030
+  ```
+</Note>
+
+## Success Flow
+
+1. Validate request method is POST
+2. Load existing films from JSON
+3. Check for duplicate film name (case-insensitive)
+4. Validate year is between 1900 and 2024
+5. Create new film object
+6. Append to films array
+7. Save to JSON file with pretty printing
+8. Redirect to all films list
+
+## Error Handling Summary
+
+| Error Condition | Error Message | HTTP Response |
+|----------------|---------------|---------------|
+| Duplicate film name | "La película ya existe en la lista" | View with error |
+| Year < 1900 or > 2024 | "El año de la película debe estar entre 1900 y 2024" | View with error |
+| File save failure | "Error saving the film list" | View with error |

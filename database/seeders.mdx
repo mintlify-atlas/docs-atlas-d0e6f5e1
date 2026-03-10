@@ -1,0 +1,624 @@
+---
+title: 'Database Seeders'
+description: 'Populate your database with test data using Laravel seeders'
+icon: 'seedling'
+---
+
+## Overview
+
+Laravel seeders provide a convenient way to populate your database with test data. The Films & Actors application uses multiple seeder classes with the Faker library to generate realistic sample data.
+
+<Note>
+All seeders are located in `database/seeders/` and can be run individually or together through the main `DatabaseSeeder` class.
+</Note>
+
+## Seeder Architecture
+
+The application uses a modular seeding strategy with specialized seeders for each table:
+
+```
+DatabaseSeeder (orchestrator)
+├── ActorFakeSeeder (10 actors with Faker)
+├── FilmFakeSeeder (10 films with Faker)
+└── FilmsActorSeeder (random relationships)
+```
+
+## Available Seeders
+
+<CardGroup cols={2}>
+  <Card title="ActorFakeSeeder" icon="user">
+    Generates 10 actors with realistic data using Faker library
+  </Card>
+  
+  <Card title="FilmFakeSeeder" icon="film">
+    Creates 10 films with random genres and metadata
+  </Card>
+  
+  <Card title="FilmSeeder" icon="database">
+    Legacy seeder with basic film data (10 films)
+  </Card>
+  
+  <Card title="FilmsActorSeeder" icon="link">
+    Creates random many-to-many relationships
+  </Card>
+</CardGroup>
+
+## Seeder Details
+
+<Tabs>
+  <Tab title="ActorFakeSeeder">
+    ### Actor Fake Seeder
+    
+    **File:** `database/seeders/ActorFakeSeeder.php`
+    
+    Generates 10 actors with realistic data using the Faker library.
+    
+    ```php
+    <?php
+
+    namespace Database\Seeders;
+
+    use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+    use Illuminate\Database\Seeder;
+    use Illuminate\Support\Facades\DB;
+    use Faker\Factory as Faker;
+
+    class ActorFakeSeeder extends Seeder
+    {
+        /**
+         * Run the database seeds.
+         */
+        public function run(): void
+        {
+            $faker = Faker::create();
+
+            for ($i = 0; $i < 10; $i++) {
+                $agency = $faker->company() . " Agency";
+                \Log::info("Improvement: Seeding actor with agency: $agency");
+
+                DB::table('actors')->insert([
+                    'name' => $faker->firstName(),
+                    'surname' => $faker->lastName(),
+                    'birthdate' => $faker->year(),
+                    'country' => $faker->country(),
+                    'agency' => $agency,
+                    'img_url' => $faker->imageUrl(400, 400, 'people'),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        }
+    }
+    ```
+    
+    **Generated Data:**
+    - **name:** Random first name (e.g., "John", "Sarah")
+    - **surname:** Random last name (e.g., "Smith", "Johnson")
+    - **birthdate:** Random year
+    - **country:** Random country name
+    - **agency:** Company name + " Agency" (e.g., "Acme Corp Agency")
+    - **img_url:** Placeholder image URL (400x400, people category)
+    
+    <Note>
+    This seeder logs each actor's agency to the Laravel log for debugging purposes.
+    </Note>
+  </Tab>
+  
+  <Tab title="FilmFakeSeeder">
+    ### Film Fake Seeder
+    
+    **File:** `database/seeders/FilmFakeSeeder.php`
+    
+    Creates 10 films with realistic metadata using Faker.
+    
+    ```php
+    <?php
+
+    namespace Database\Seeders;
+
+    use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+    use Illuminate\Database\Seeder;
+    use Illuminate\Support\Facades\DB;
+    use Faker\Factory as Faker;
+
+    class FilmFakeSeeder extends Seeder
+    {
+        /**
+         * Run the database seeds.
+         */
+        public function run(): void
+        {
+            $faker = Faker::create();
+
+            for ($i = 0; $i < 10; $i++) {
+                DB::table('films')->insert([
+                    'name' => $faker->sentence(3),
+                    'year' => $faker->year(),
+                    'genre' => $faker->randomElement(['Acción', 'Drama', 'Comedia', 'Terror', 'Sci-Fi']),
+                    'country' => $faker->country(),
+                    'duration' => $faker->numberBetween(80, 180),
+                    'img_url' => $faker->imageUrl(640, 480, 'movies'),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        }
+    }
+    ```
+    
+    **Generated Data:**
+    - **name:** Random 3-word sentence (e.g., "The Dark Night")
+    - **year:** Random year
+    - **genre:** One of 5 genres (Acción, Drama, Comedia, Terror, Sci-Fi)
+    - **country:** Random country name
+    - **duration:** Random number between 80-180 minutes
+    - **img_url:** Placeholder image URL (640x480, movies category)
+    
+    <Note>
+    Film durations range from 80 to 180 minutes, representing typical movie lengths.
+    </Note>
+  </Tab>
+  
+  <Tab title="FilmSeeder">
+    ### Film Seeder (Legacy)
+    
+    **File:** `database/seeders/FilmSeeder.php`
+    
+    A simpler seeder that creates 10 films with basic, pattern-based data.
+    
+    ```php
+    <?php
+
+    namespace Database\Seeders;
+
+    use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+    use Illuminate\Database\Seeder;
+    use Illuminate\Support\Facades\DB;
+
+    class FilmSeeder extends Seeder
+    {
+        /**
+         * Run the database seeds.
+         */
+        public function run(): void
+        {
+            for($i=10; $i<20; $i++){
+                $year = rand(1900, 2024);
+                
+                if ($year < 1900 || $year > 2024) {
+                    \Log::error("Year out of range detected in FilmSeeder: $year");
+                }
+
+                DB::table('films')->insert(array(
+                    "name" => "pelicula$i",
+                    "year" => $year,
+                    "genre" => "Genero $i",
+                    "duration" => 100 + $i,
+                    "country" => "Pais $i",
+                    "img_url" => "img/cine$i.png"
+                ));
+            }
+            $this->command->info("Mi tabla usuarios ha sido rellenada por defecto");
+        }
+    }
+    ```
+    
+    **Generated Data:**
+    - **name:** Pattern-based (pelicula10, pelicula11, etc.)
+    - **year:** Random between 1900-2024 with validation
+    - **genre:** Pattern-based (Genero 10, Genero 11, etc.)
+    - **duration:** Incremental (110, 111, 112, etc.)
+    - **country:** Pattern-based (Pais 10, Pais 11, etc.)
+    - **img_url:** Local image paths
+    
+    <Warning>
+    This is a legacy seeder. The `FilmFakeSeeder` is recommended for more realistic test data.
+    </Warning>
+  </Tab>
+  
+  <Tab title="FilmsActorSeeder">
+    ### Films-Actor Relationship Seeder
+    
+    **File:** `database/seeders/FilmsActorSeeder.php`
+    
+    Creates random many-to-many relationships between existing films and actors.
+    
+    ```php
+    <?php
+
+    namespace Database\Seeders;
+
+    use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+    use Illuminate\Database\Seeder;
+    use Illuminate\Support\Facades\DB;
+    use Faker\Factory as Faker;
+
+    class FilmsActorSeeder extends Seeder
+    {
+        /**
+         * Run the database seeds.
+         */
+        public function run(): void
+        {
+            DB::table('films_actor')->truncate();
+            
+            $filmIds = DB::table('films')->pluck('id')->toArray();
+            $actorIds = DB::table('actors')->pluck('id')->toArray();
+
+            foreach ($filmIds as $filmId) {
+
+                $randomActors = collect($actorIds)->random(rand(1, 3));
+
+                foreach ($randomActors as $actorId) {
+                    DB::table('films_actor')->insert([
+                        'film_id' => $filmId,
+                        'actor_id' => $actorId,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
+        }
+    }
+    ```
+    
+    **Seeding Logic:**
+    1. **Truncates** the `films_actor` table to start fresh
+    2. **Fetches** all film IDs and actor IDs from the database
+    3. **Iterates** through each film
+    4. **Assigns** 1-3 random actors to each film
+    5. **Creates** the relationship records
+    
+    <Warning>
+    This seeder uses `truncate()` which will delete all existing relationships before creating new ones.
+    </Warning>
+    
+    <Note>
+    Each film will have between 1 and 3 actors randomly assigned, creating a realistic distribution.
+    </Note>
+  </Tab>
+  
+  <Tab title="DatabaseSeeder">
+    ### Main Database Seeder
+    
+    **File:** `database/seeders/DatabaseSeeder.php`
+    
+    The orchestrator that runs all seeders in the correct order.
+    
+    ```php
+    <?php
+
+    namespace Database\Seeders;
+
+    // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+    use Illuminate\Database\Seeder;
+
+    class DatabaseSeeder extends Seeder
+    {
+        /**
+         * Seed the application's database.
+         *
+         * @return void
+         */
+        public function run()
+        {
+            $this->call([
+                ActorFakeSeeder::class,
+                FilmFakeSeeder::class,
+                FilmsActorSeeder::class,
+            ]);
+        }
+    }
+    ```
+    
+    **Execution Order:**
+    1. **ActorFakeSeeder** - Creates 10 actors first
+    2. **FilmFakeSeeder** - Creates 10 films second
+    3. **FilmsActorSeeder** - Creates relationships last (requires both films and actors to exist)
+    
+    <Note>
+    The order is critical: actors and films must exist before creating relationships between them.
+    </Note>
+  </Tab>
+</Tabs>
+
+## Running Seeders
+
+### Run All Seeders
+
+```bash
+php artisan db:seed
+```
+
+This runs the `DatabaseSeeder` class, which executes all three seeders in order.
+
+### Run Specific Seeder
+
+<CodeGroup>
+```bash Actor Seeder Only
+php artisan db:seed --class=ActorFakeSeeder
+```
+
+```bash Film Seeder Only
+php artisan db:seed --class=FilmFakeSeeder
+```
+
+```bash Relationship Seeder Only
+php artisan db:seed --class=FilmsActorSeeder
+```
+
+```bash Legacy Film Seeder
+php artisan db:seed --class=FilmSeeder
+```
+</CodeGroup>
+
+### Fresh Migration with Seeders
+
+```bash
+# Drop all tables, recreate them, and run seeders
+php artisan migrate:fresh --seed
+```
+
+<Warning>
+**Destructive Command:** `migrate:fresh --seed` will delete all existing data!
+</Warning>
+
+## Expected Results
+
+After running all seeders, your database will contain:
+
+<CardGroup cols={3}>
+  <Card title="10 Actors" icon="users">
+    Realistic actor data with names, birthdates, countries, and agencies
+  </Card>
+  
+  <Card title="10 Films" icon="film">
+    Diverse films with genres, durations, and countries
+  </Card>
+  
+  <Card title="10-30 Relationships" icon="link">
+    Each film connected to 1-3 random actors
+  </Card>
+</CardGroup>
+
+## Sample Data Examples
+
+### Actor Example
+```json
+{
+  "id": 1,
+  "name": "Sarah",
+  "surname": "Johnson",
+  "birthdate": 1985,
+  "country": "United States",
+  "agency": "Acme Productions Agency",
+  "img_url": "https://via.placeholder.com/400x400.png/people",
+  "created_at": "2026-03-10 10:30:00",
+  "updated_at": "2026-03-10 10:30:00"
+}
+```
+
+### Film Example
+```json
+{
+  "id": 1,
+  "name": "The Dark Journey",
+  "year": 2020,
+  "genre": "Sci-Fi",
+  "country": "Canada",
+  "duration": 142,
+  "img_url": "https://via.placeholder.com/640x480.png/movies",
+  "created_at": "2026-03-10 10:30:00",
+  "updated_at": "2026-03-10 10:30:00"
+}
+```
+
+### Relationship Example
+```json
+{
+  "id": 1,
+  "film_id": 1,
+  "actor_id": 1,
+  "created_at": "2026-03-10 10:30:00",
+  "updated_at": "2026-03-10 10:30:00"
+}
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Faker" icon="shuffle">
+    Leverage Faker library for realistic, varied test data instead of static patterns.
+  </Card>
+  
+  <Card title="Truncate Carefully" icon="warning">
+    Be cautious with `truncate()` - it deletes all data. Use conditionally.
+  </Card>
+  
+  <Card title="Maintain Order" icon="list-ol">
+    Always seed parent tables before creating relationships.
+  </Card>
+  
+  <Card title="Log Important Data" icon="file-lines">
+    Use logging to track seeding progress and debug issues.
+  </Card>
+</CardGroup>
+
+## Creating Custom Seeders
+
+### Generate New Seeder
+
+```bash
+php artisan make:seeder CustomSeeder
+```
+
+### Basic Seeder Template
+
+```php
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Faker\Factory as Faker;
+
+class CustomSeeder extends Seeder
+{
+    public function run(): void
+    {
+        $faker = Faker::create();
+        
+        for ($i = 0; $i < 10; $i++) {
+            DB::table('your_table')->insert([
+                'field' => $faker->word(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+    }
+}
+```
+
+### Add to DatabaseSeeder
+
+```php
+public function run()
+{
+    $this->call([
+        ActorFakeSeeder::class,
+        FilmFakeSeeder::class,
+        CustomSeeder::class, // Add your seeder
+        FilmsActorSeeder::class,
+    ]);
+}
+```
+
+## Troubleshooting
+
+<Tabs>
+  <Tab title="Foreign Key Errors">
+    ### Foreign Key Constraint Failures
+    
+    **Error:** `SQLSTATE[23000]: Integrity constraint violation`
+    
+    **Cause:** Trying to seed relationships before parent records exist
+    
+    **Solution:**
+    ```bash
+    # Ensure correct order in DatabaseSeeder
+    # 1. Seed actors
+    # 2. Seed films
+    # 3. Seed relationships
+    
+    # Or run seeders individually in order
+    php artisan db:seed --class=ActorFakeSeeder
+    php artisan db:seed --class=FilmFakeSeeder
+    php artisan db:seed --class=FilmsActorSeeder
+    ```
+  </Tab>
+  
+  <Tab title="Duplicate Entries">
+    ### Duplicate Key Violations
+    
+    **Error:** Unique constraint violation in `films_actor` table
+    
+    **Cause:** Trying to assign the same actor to the same film twice
+    
+    **Solution:**
+    The `FilmsActorSeeder` handles this by using `truncate()` first, but if you modify it:
+    ```php
+    // Check if relationship exists before inserting
+    $exists = DB::table('films_actor')
+        ->where('film_id', $filmId)
+        ->where('actor_id', $actorId)
+        ->exists();
+    
+    if (!$exists) {
+        DB::table('films_actor')->insert([...]);
+    }
+    ```
+  </Tab>
+  
+  <Tab title="No Data">
+    ### Seeder Runs But No Data
+    
+    **Problem:** Seeder completes but tables are empty
+    
+    **Causes:**
+    - Loop not executing
+    - Database connection issue
+    - Silent failure in insert
+    
+    **Solution:**
+    ```php
+    // Add logging to debug
+    \Log::info('Seeder starting');
+    
+    for ($i = 0; $i < 10; $i++) {
+        \Log::info("Inserting record $i");
+        DB::table('actors')->insert([...]);
+    }
+    
+    \Log::info('Seeder complete');
+    
+    // Check logs
+    tail -f storage/logs/laravel.log
+    ```
+  </Tab>
+</Tabs>
+
+## Advanced Seeding Techniques
+
+### Model Factories
+
+For more complex seeding, consider using Laravel factories:
+
+```php
+// Create factory
+php artisan make:factory ActorFactory
+
+// Use in seeder
+\App\Models\Actor::factory(10)->create();
+```
+
+### Conditional Seeding
+
+```php
+public function run(): void
+{
+    // Only seed if table is empty
+    if (DB::table('actors')->count() === 0) {
+        // Run seeding logic
+    }
+}
+```
+
+### Environment-Specific Seeding
+
+```php
+public function run(): void
+{
+    if (app()->environment('local')) {
+        // Seed more data for development
+        $count = 100;
+    } else {
+        // Seed less data for staging
+        $count = 10;
+    }
+    
+    // Use $count in loop
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Database Schema" icon="database" href="/database/schema">
+    Review the complete database schema structure
+  </Card>
+  
+  <Card title="Migrations" icon="arrows-rotate" href="/database/migrations">
+    Learn how to manage database schema changes
+  </Card>
+</CardGroup>

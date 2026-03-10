@@ -1,0 +1,137 @@
+---
+title: 'List Films by Year'
+api: 'GET /filmout/filmsByYear/{year?}'
+description: 'Retrieve films released in a specific year'
+---
+
+## Overview
+
+This endpoint returns all films from the database that were released in the exact year specified. If no year is provided, it returns all films without filtering.
+
+## Endpoint
+
+```
+GET /filmout/filmsByYear/{year?}
+```
+
+## Path Parameters
+
+<ParamField path="year" type="integer" optional>
+  The specific year to filter films by. Only films released in this exact year will be returned.
+  
+  - **Default**: If omitted, returns all films without year filtering
+  - **Validation**: Must be between 1900 and 2024 (enforced by ValidateYear middleware)
+  - **Example**: 2015
+</ParamField>
+
+## Middleware
+
+<Note>
+  This endpoint is protected by the `ValidateYear` middleware which validates that the year parameter (if provided) is:
+  - Numeric
+  - Between 1900 and 2024
+  
+  Invalid year values will redirect to the homepage.
+</Note>
+
+## Response
+
+Returns a rendered view (`films.list`) with the following data:
+
+<ResponseField name="films" type="array">
+  Array of film objects that match the filter criteria (year == specified year)
+  
+  <ResponseField name="name" type="string">
+    The film's title
+  </ResponseField>
+  
+  <ResponseField name="year" type="integer">
+    The release year of the film
+  </ResponseField>
+  
+  <ResponseField name="genre" type="string">
+    The film's genre
+  </ResponseField>
+  
+  <ResponseField name="country" type="string">
+    Country of origin
+  </ResponseField>
+  
+  <ResponseField name="duration" type="string">
+    Film duration
+  </ResponseField>
+  
+  <ResponseField name="img_url" type="string">
+    URL to the film's poster image
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="title" type="string">
+  Display title for the view:
+  - "Listado de películas del año {year}" when year is provided
+  - "Listado de todas las películas (sin filtrar por año)" when year is omitted
+</ResponseField>
+
+## Examples
+
+<CodeGroup>
+
+```bash Filter by specific year
+curl http://localhost:8000/filmout/filmsByYear/2015
+```
+
+```bash No filter (all films)
+curl http://localhost:8000/filmout/filmsByYear
+```
+
+```bash Classic films from 1994
+curl http://localhost:8000/filmout/filmsByYear/1994
+```
+
+</CodeGroup>
+
+## Implementation Details
+
+- **Controller Method**: `FilmController::listFilmsByYear($year = null)`
+- **View**: `films.list`
+- **Route Name**: `filmsByYear`
+- **Filter Logic**: Returns films where `$film['year'] == $year` (exact match)
+
+<Warning>
+  If the year parameter is outside the range 1900-2024, the middleware will redirect to the homepage instead of returning an error response.
+</Warning>
+
+## Behavior Differences
+
+| Scenario | Filter Applied | Title |
+|----------|----------------|-------|
+| `/filmsByYear/2015` | Only films from 2015 | "Listado de películas del año 2015" |
+| `/filmsByYear` | No filter | "Listado de todas las películas (sin filtrar por año)" |
+
+## Example Response Data
+
+When calling `/filmout/filmsByYear/2010`, the view receives:
+
+```json
+{
+  "films": [
+    {
+      "name": "Inception",
+      "year": 2010,
+      "genre": "Sci-Fi",
+      "country": "USA",
+      "duration": "148 min",
+      "img_url": "/images/inception.jpg"
+    },
+    {
+      "name": "Shutter Island",
+      "year": 2010,
+      "genre": "Thriller",
+      "country": "USA",
+      "duration": "138 min",
+      "img_url": "/images/shutter-island.jpg"
+    }
+  ],
+  "title": "Listado de películas del año 2010"
+}
+```

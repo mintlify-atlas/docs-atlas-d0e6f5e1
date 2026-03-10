@@ -1,0 +1,177 @@
+---
+title: 'Get All Actors'
+api: 'GET /allActors'
+description: 'Retrieve a complete list of all actors ordered by birthdate'
+---
+
+## Overview
+
+This endpoint returns all actors from the database, ordered chronologically by birthdate (ascending). It provides a comprehensive list with full actor details and available decades for filtering.
+
+## Endpoint
+
+```
+GET /allActors
+```
+
+## Middleware
+
+This endpoint is protected by the `actor` middleware (`ValidateURLActor`).
+
+## Request
+
+No parameters required for this endpoint.
+
+### Headers
+
+No special headers required.
+
+## Response
+
+Returns an HTML view with actor data. The response includes:
+
+<ResponseField name="actors" type="array">
+  Array of actor objects ordered by birthdate (ascending)
+  
+  <ResponseField name="id" type="integer">
+    Unique actor identifier
+  </ResponseField>
+  
+  <ResponseField name="name" type="string">
+    Actor's first name
+  </ResponseField>
+  
+  <ResponseField name="surname" type="string">
+    Actor's last name
+  </ResponseField>
+  
+  <ResponseField name="birthdate" type="integer">
+    Year of birth
+  </ResponseField>
+  
+  <ResponseField name="country" type="string">
+    Country of origin
+  </ResponseField>
+  
+  <ResponseField name="agency" type="string">
+    Talent agency representation
+  </ResponseField>
+  
+  <ResponseField name="img_url" type="string">
+    URL to actor's profile image
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="title" type="string">
+  Page title - "Listado de todos los actores" (List of all actors)
+</ResponseField>
+
+<ResponseField name="decades" type="array">
+  Array of available decades (e.g., [1950, 1960, 1970]) for filtering
+</ResponseField>
+
+<ResponseField name="selectedDecade" type="null">
+  Currently selected decade filter (null for all actors view)
+</ResponseField>
+
+## Implementation Details
+
+### Controller Method
+
+Location: `app/Http/Controllers/ActorController.php:30`
+
+```php
+public function listAllActors()
+{
+    $title = "Listado de todos los actores";
+   
+    $actors = ActorController::readActors();
+
+    if (empty($actors)) {
+        $title = "No hay actores disponibles";
+        return view("actors.list", [
+            "actors" => [],
+            "title" => $title
+        ]);
+    }
+
+    return view("actors.list", [
+        "actors" => $actors,
+        "title" => $title,
+        "decades" => ActorController::getAvailableDecades(),
+        "selectedDecade" => null
+    ]);
+}
+```
+
+### Database Query
+
+The `readActors()` method executes:
+
+```php
+Actor::orderBy('birthdate', 'asc')->get()->toArray()
+```
+
+### Route Definition
+
+Location: `routes/web.php:59`
+
+```php
+Route::middleware('actor')->group(function() {
+    Route::get('allActors', [ActorController::class, "listAllActors"])
+        ->name('allActors');
+});
+```
+
+## Examples
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET "http://your-domain.com/allActors"
+```
+
+```javascript Fetch
+fetch('http://your-domain.com/allActors')
+  .then(response => response.text())
+  .then(html => console.log(html));
+```
+
+```php PHP
+$response = Http::get('http://your-domain.com/allActors');
+$html = $response->body();
+```
+
+</CodeGroup>
+
+## Response Behavior
+
+### Empty Database
+
+When no actors exist in the database:
+- Returns empty array for `actors`
+- Title changes to: "No hay actores disponibles" (No actors available)
+- `decades` field is not included
+- `selectedDecade` field is not included
+
+### Normal Response
+
+When actors exist:
+- All actors ordered by `birthdate` ASC
+- Includes complete actor information
+- Provides `decades` array for decade-based filtering
+- `selectedDecade` is `null` (no filter applied)
+
+## Related Endpoints
+
+- [Get Actors By Decade](/api/actors/by-decade) - Filter actors by birth decade
+
+## Notes
+
+<Note>
+  The endpoint returns an HTML view (`actors.list`) rather than JSON. For API integration, consider requesting JSON responses or parsing the HTML output.
+</Note>
+
+<Note>
+  Actors are always sorted by birthdate in ascending order (oldest first).
+</Note>

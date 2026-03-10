@@ -1,0 +1,149 @@
+---
+title: 'Sort Films'
+api: 'GET /filmout/sortFilms'
+description: 'Retrieve all films sorted by release year in descending order'
+---
+
+## Overview
+
+This endpoint returns all films from the database sorted by release year in descending order (newest to oldest). This is useful for displaying films chronologically with the most recent releases first.
+
+## Endpoint
+
+```
+GET /filmout/sortFilms
+```
+
+## Path Parameters
+
+This endpoint does not accept any path parameters.
+
+## Middleware
+
+<Note>
+  This endpoint is protected by the `year` middleware group, though it does not use any year parameters.
+</Note>
+
+## Response
+
+Returns a rendered view (`films.list`) with the following data:
+
+<ResponseField name="films" type="array">
+  Array of all film objects sorted by year in descending order (newest first)
+  
+  <ResponseField name="name" type="string">
+    The film's title
+  </ResponseField>
+  
+  <ResponseField name="year" type="integer">
+    The release year of the film
+  </ResponseField>
+  
+  <ResponseField name="genre" type="string">
+    The film's genre
+  </ResponseField>
+  
+  <ResponseField name="country" type="string">
+    Country of origin
+  </ResponseField>
+  
+  <ResponseField name="duration" type="string">
+    Film duration
+  </ResponseField>
+  
+  <ResponseField name="img_url" type="string">
+    URL to the film's poster image
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="title" type="string">
+  Display title for the view: "Peliculas ordenadas"
+</ResponseField>
+
+## Examples
+
+<CodeGroup>
+
+```bash Get sorted films
+curl http://localhost:8000/filmout/sortFilms
+```
+
+</CodeGroup>
+
+## Implementation Details
+
+- **Controller Method**: `FilmController::sortFilms()`
+- **View**: `films.list`
+- **Sorting Logic**: Uses PHP's `usort()` with spaceship operator (`<=>`) to sort by year in descending order
+
+## Sorting Algorithm
+
+The endpoint uses the following comparison function:
+
+```php
+usort($films, function($a, $b) {
+    return $b['year'] <=> $a['year'];
+});
+```
+
+This ensures films are ordered from **newest to oldest** (2024 → 1900).
+
+<Note>
+  The spaceship operator (`<=>`) returns:
+  - `-1` if left is less than right
+  - `0` if they are equal
+  - `1` if left is greater than right
+  
+  By using `$b <=> $a` instead of `$a <=> $b`, the sort is in descending order.
+</Note>
+
+## Example Response Data
+
+When calling `/filmout/sortFilms`, the view receives films sorted newest to oldest:
+
+```json
+{
+  "films": [
+    {
+      "name": "Oppenheimer",
+      "year": 2023,
+      "genre": "Biography",
+      "country": "USA",
+      "duration": "180 min",
+      "img_url": "/images/oppenheimer.jpg"
+    },
+    {
+      "name": "Inception",
+      "year": 2010,
+      "genre": "Sci-Fi",
+      "country": "USA",
+      "duration": "148 min",
+      "img_url": "/images/inception.jpg"
+    },
+    {
+      "name": "The Matrix",
+      "year": 1999,
+      "genre": "Sci-Fi",
+      "country": "USA",
+      "duration": "136 min",
+      "img_url": "/images/matrix.jpg"
+    },
+    {
+      "name": "The Shawshank Redemption",
+      "year": 1994,
+      "genre": "Drama",
+      "country": "USA",
+      "duration": "142 min",
+      "img_url": "/images/shawshank.jpg"
+    }
+  ],
+  "title": "Peliculas ordenadas"
+}
+```
+
+## Use Cases
+
+- Display recent releases prominently
+- Timeline visualizations
+- "New Arrivals" sections
+- Chronological browsing experiences

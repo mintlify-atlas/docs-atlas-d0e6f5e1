@@ -1,0 +1,120 @@
+---
+title: 'List Old Films'
+api: 'GET /filmout/oldFilms/{year?}'
+description: 'Retrieve films released before a specified year'
+---
+
+## Overview
+
+This endpoint returns all films from the database that were released before the specified year. If no year is provided, it defaults to 2000.
+
+## Endpoint
+
+```
+GET /filmout/oldFilms/{year?}
+```
+
+## Path Parameters
+
+<ParamField path="year" type="integer" optional>
+  The cutoff year for filtering films. Only films released **before** this year will be returned.
+  
+  - **Default**: 2000
+  - **Validation**: Must be between 1900 and 2024 (enforced by ValidateYear middleware)
+  - **Example**: 1995
+</ParamField>
+
+## Middleware
+
+<Note>
+  This endpoint is protected by the `ValidateYear` middleware which validates that the year parameter (if provided) is:
+  - Numeric
+  - Between 1900 and 2024
+  
+  Invalid year values will redirect to the homepage.
+</Note>
+
+## Response
+
+Returns a rendered view (`films.list`) with the following data:
+
+<ResponseField name="films" type="array">
+  Array of film objects that match the filter criteria (year < specified year)
+  
+  <ResponseField name="name" type="string">
+    The film's title
+  </ResponseField>
+  
+  <ResponseField name="year" type="integer">
+    The release year of the film
+  </ResponseField>
+  
+  <ResponseField name="genre" type="string">
+    The film's genre
+  </ResponseField>
+  
+  <ResponseField name="country" type="string">
+    Country of origin
+  </ResponseField>
+  
+  <ResponseField name="duration" type="string">
+    Film duration
+  </ResponseField>
+  
+  <ResponseField name="img_url" type="string">
+    URL to the film's poster image
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="title" type="string">
+  Display title for the view: "Listado de Pelis Antiguas (Antes de {year})"
+</ResponseField>
+
+## Examples
+
+<CodeGroup>
+
+```bash Default (year 2000)
+curl http://localhost:8000/filmout/oldFilms
+```
+
+```bash With specific year
+curl http://localhost:8000/filmout/oldFilms/1990
+```
+
+```bash Edge case - minimum year
+curl http://localhost:8000/filmout/oldFilms/1900
+```
+
+</CodeGroup>
+
+## Implementation Details
+
+- **Controller Method**: `FilmController::listOldFilms($year = null)`
+- **View**: `films.list`
+- **Route Name**: `oldFilms`
+- **Filter Logic**: Returns films where `$film['year'] < $year`
+
+<Warning>
+  If the year parameter is outside the range 1900-2024, the middleware will redirect to the homepage instead of returning an error response.
+</Warning>
+
+## Example Response Data
+
+When calling `/filmout/oldFilms/2000`, the view receives:
+
+```json
+{
+  "films": [
+    {
+      "name": "The Shawshank Redemption",
+      "year": 1994,
+      "genre": "Drama",
+      "country": "USA",
+      "duration": "142 min",
+      "img_url": "/images/shawshank.jpg"
+    }
+  ],
+  "title": "Listado de Pelis Antiguas (Antes de 2000)"
+}
+```

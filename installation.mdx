@@ -1,0 +1,616 @@
+---
+title: 'Installation'
+description: 'Complete installation guide for Laravel Films & Actors'
+icon: 'download'
+---
+
+## Prerequisites
+
+Before installing Laravel Films & Actors, ensure your system meets the following requirements:
+
+<CardGroup cols={2}>
+  <Card title="PHP 8.1+" icon="php">
+    Required for Laravel 10.x framework
+  </Card>
+
+  <Card title="Composer" icon="box">
+    PHP dependency manager
+  </Card>
+
+  <Card title="MySQL 5.7+" icon="database">
+    Or MariaDB 10.3+
+  </Card>
+
+  <Card title="Node.js & NPM" icon="node-js">
+    For frontend asset compilation (optional)
+  </Card>
+</CardGroup>
+
+### System Requirements
+
+- **PHP**: Version 8.1 or higher
+- **PHP Extensions**:
+  - BCMath
+  - Ctype
+  - cURL
+  - DOM
+  - Fileinfo
+  - JSON
+  - Mbstring
+  - OpenSSL
+  - PCRE
+  - PDO
+  - PDO_MySQL
+  - Tokenizer
+  - XML
+
+<Tip>
+  Check your PHP version and installed extensions:
+  ```bash
+  php -v
+  php -m
+  ```
+</Tip>
+
+## Step-by-Step Installation
+
+<Steps>
+  <Step title="Clone the Repository">
+    Clone the repository to your local development environment:
+
+    ```bash
+    git clone <repository-url> laravel-films-actors
+    cd laravel-films-actors
+    ```
+  </Step>
+
+  <Step title="Install PHP Dependencies">
+    Use Composer to install all required PHP packages:
+
+    ```bash
+    composer install
+    ```
+
+    This installs the following key dependencies:
+
+    <AccordionGroup>
+      <Accordion title="Production Dependencies">
+        - **laravel/framework** (^10.10) - Core Laravel framework
+        - **laravel/sanctum** (^3.3) - API authentication
+        - **laravel/tinker** (^2.8) - REPL for Laravel
+        - **doctrine/dbal** (3.5.1) - Database abstraction layer
+        - **guzzlehttp/guzzle** (^7.2) - HTTP client
+      </Accordion>
+
+      <Accordion title="Development Dependencies">
+        - **fakerphp/faker** (^1.24) - Generate fake data for testing
+        - **laravel/pint** (^1.0) - PHP code style fixer
+        - **laravel/sail** (^1.18) - Docker development environment
+        - **phpunit/phpunit** (^10.1) - Testing framework
+        - **spatie/laravel-ignition** (^2.0) - Error page for Laravel
+      </Accordion>
+    </AccordionGroup>
+  </Step>
+
+  <Step title="Install Frontend Dependencies (Optional)">
+    If you plan to modify frontend assets:
+
+    ```bash
+    npm install
+    ```
+
+    The application uses Vite for asset bundling:
+    - **vite** (^4.0.0) - Next generation frontend tooling
+    - **laravel-vite-plugin** (^0.7.2) - Laravel integration for Vite
+    - **axios** (^1.1.2) - HTTP client for frontend
+
+    <Note>
+      Frontend compilation is optional. The application works without building assets.
+    </Note>
+  </Step>
+
+  <Step title="Environment Configuration">
+    Create your environment configuration file:
+
+    ```bash
+    cp .env.example .env
+    ```
+
+    Generate the application key:
+
+    ```bash
+    php artisan key:generate
+    ```
+
+    This automatically updates the `APP_KEY` in your `.env` file.
+  </Step>
+
+  <Step title="Configure Database Settings">
+    Open the `.env` file and configure your database connection:
+
+    <CodeGroup>
+      ```bash .env
+      APP_NAME="Laravel Films & Actors"
+      APP_ENV=local
+      APP_KEY=base64:your-generated-key
+      APP_DEBUG=true
+      APP_URL=http://localhost:8000
+
+      DB_CONNECTION=mysql
+      DB_HOST=127.0.0.1
+      DB_PORT=3306
+      DB_DATABASE=laravel
+      DB_USERNAME=root
+      DB_PASSWORD=your_password
+      ```
+
+      ```bash Production Example
+      APP_NAME="Laravel Films & Actors"
+      APP_ENV=production
+      APP_KEY=base64:your-generated-key
+      APP_DEBUG=false
+      APP_URL=https://yourapp.com
+
+      DB_CONNECTION=mysql
+      DB_HOST=your-db-host
+      DB_PORT=3306
+      DB_DATABASE=films_production
+      DB_USERNAME=films_user
+      DB_PASSWORD=secure_password
+      ```
+    </CodeGroup>
+
+    <Warning>
+      Never commit your `.env` file to version control! It contains sensitive credentials.
+    </Warning>
+  </Step>
+
+  <Step title="Create Database">
+    Create the MySQL database:
+
+    <CodeGroup>
+      ```bash Command Line
+      mysql -u root -p -e "CREATE DATABASE laravel CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+      ```
+
+      ```sql MySQL Console
+      CREATE DATABASE laravel CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+      ```
+    </CodeGroup>
+
+    Verify the database was created:
+
+    ```bash
+    mysql -u root -p -e "SHOW DATABASES;"
+    ```
+  </Step>
+
+  <Step title="Run Database Migrations">
+    Execute migrations to create the database schema:
+
+    ```bash
+    php artisan migrate
+    ```
+
+    This creates the following tables:
+
+    <AccordionGroup>
+      <Accordion title="films table">
+        Stores film information with the following columns:
+        - `id` - Auto-incrementing primary key
+        - `name` - Film title (VARCHAR 100)
+        - `year` - Release year (YEAR)
+        - `genre` - Film genre (VARCHAR 50)
+        - `country` - Country of origin (VARCHAR 30)
+        - `duration` - Runtime in minutes (INTEGER)
+        - `img_url` - Image URL (VARCHAR 255)
+        - `created_at`, `updated_at` - Timestamps
+
+        Migration file: `2026_01_27_153908_films.php`
+      </Accordion>
+
+      <Accordion title="actors table">
+        Stores actor information:
+        - `id` - Auto-incrementing primary key
+        - `name` - First name (VARCHAR 30)
+        - `surname` - Last name (VARCHAR 30)
+        - `birthdate` - Birth year (YEAR)
+        - `country` - Nationality (VARCHAR 30)
+        - `agency` - Talent agency (VARCHAR 50, nullable)
+        - `img_url` - Image URL (VARCHAR 255)
+        - `created_at`, `updated_at` - Timestamps
+
+        Migration file: `2026_01_27_154730_actors.php`
+      </Accordion>
+
+      <Accordion title="films_actor table (Pivot)">
+        Many-to-many relationship between films and actors:
+        - `id` - Auto-incrementing primary key
+        - `film_id` - Foreign key to films table
+        - `actor_id` - Foreign key to actors table
+        - `created_at`, `updated_at` - Timestamps
+        
+        Constraints:
+        - Foreign keys with cascade delete
+        - Unique constraint on `film_id` + `actor_id` combination
+
+        Migration file: `2026_01_27_160556_films_actor.php`
+      </Accordion>
+
+      <Accordion title="Laravel System Tables">
+        Standard Laravel tables:
+        - `users` - User authentication
+        - `password_resets` - Password reset tokens
+        - `failed_jobs` - Failed queue jobs
+        - `personal_access_tokens` - API tokens for Sanctum
+      </Accordion>
+    </AccordionGroup>
+
+    <Tip>
+      To see migration status at any time:
+      ```bash
+      php artisan migrate:status
+      ```
+    </Tip>
+  </Step>
+
+  <Step title="Seed the Database">
+    Populate the database with sample data:
+
+    ```bash
+    php artisan db:seed
+    ```
+
+    Or run migrations and seeding together:
+
+    ```bash
+    php artisan migrate:fresh --seed
+    ```
+
+    <Warning>
+      `migrate:fresh` drops all tables before migrating. Only use in development!
+    </Warning>
+
+    ### What Gets Seeded?
+
+    The `DatabaseSeeder` runs three seeders in sequence:
+
+    **1. ActorFakeSeeder** (10 actors)
+    ```php
+    // Creates actors with:
+    - Realistic first and last names
+    - Random birth years
+    - Random countries
+    - Generated talent agency names
+    - Placeholder profile images (400x400)
+    ```
+
+    **2. FilmFakeSeeder** (10 films)
+    ```php
+    // Creates films with:
+    - Random 3-word titles
+    - Years between 1900-2024
+    - Genres: Acción, Drama, Comedia, Terror, Sci-Fi
+    - Random countries
+    - Durations between 80-180 minutes
+    - Placeholder movie images (640x480)
+    ```
+
+    **3. FilmsActorSeeder**
+    ```php
+    // Creates relationships between films and actors
+    ```
+
+    <Note>
+      Each seeding run generates different data using Faker, so your sample data will be unique.
+    </Note>
+  </Step>
+
+  <Step title="Set Directory Permissions">
+    Ensure Laravel can write to storage and cache directories:
+
+    ```bash
+    chmod -R 775 storage bootstrap/cache
+    chown -R $USER:www-data storage bootstrap/cache
+    ```
+
+    Or if using sudo:
+
+    ```bash
+    sudo chmod -R 775 storage bootstrap/cache
+    sudo chown -R $USER:www-data storage bootstrap/cache
+    ```
+  </Step>
+
+  <Step title="Build Frontend Assets (Optional)">
+    If you installed Node dependencies and want to compile assets:
+
+    <CodeGroup>
+      ```bash Development
+      npm run dev
+      ```
+
+      ```bash Production
+      npm run build
+      ```
+    </CodeGroup>
+
+    The Vite configuration handles:
+    - JavaScript bundling
+    - CSS processing
+    - Hot module replacement (HMR) in development
+  </Step>
+
+  <Step title="Start the Application">
+    Launch the Laravel development server:
+
+    ```bash
+    php artisan serve
+    ```
+
+    By default, the application runs at `http://localhost:8000`
+
+    To use a different port:
+    ```bash
+    php artisan serve --port=8080
+    ```
+
+    To make it accessible from other devices on your network:
+    ```bash
+    php artisan serve --host=0.0.0.0 --port=8000
+    ```
+  </Step>
+</Steps>
+
+## Verification
+
+Confirm your installation is successful:
+
+<Steps>
+  <Step title="Check Home Page">
+    Visit `http://localhost:8000` - you should see the application home page
+  </Step>
+
+  <Step title="Verify Database Connection">
+    Test database connectivity using Artisan Tinker:
+
+    ```bash
+    php artisan tinker
+    ```
+
+    Then run:
+    ```php
+    >>> DB::connection()->getPdo();
+    >>> \App\Models\Actor::count();
+    >>> \App\Models\Film::count();
+    ```
+
+    You should see counts of 10 actors and 10 films.
+  </Step>
+
+  <Step title="Test Routes">
+    Access these routes to verify functionality:
+
+    - Films: `http://localhost:8000/filmout/allFilms`
+    - Actors: `http://localhost:8000/allActors`
+    - Old Films: `http://localhost:8000/filmout/oldFilms/2000`
+  </Step>
+</Steps>
+
+## Alternative Installation Methods
+
+### Using Laravel Sail (Docker)
+
+Laravel Sail provides a Docker-based development environment:
+
+<Steps>
+  <Step title="Install Sail">
+    ```bash
+    composer require laravel/sail --dev
+    ```
+  </Step>
+
+  <Step title="Initialize Sail">
+    ```bash
+    php artisan sail:install
+    ```
+
+    Select MySQL when prompted.
+  </Step>
+
+  <Step title="Start Sail">
+    ```bash
+    ./vendor/bin/sail up -d
+    ```
+  </Step>
+
+  <Step title="Run Migrations in Sail">
+    ```bash
+    ./vendor/bin/sail artisan migrate --seed
+    ```
+  </Step>
+</Steps>
+
+<Tip>
+  Create a shell alias for convenience:
+  ```bash
+  alias sail='./vendor/bin/sail'
+  ```
+
+  Then use: `sail up -d`, `sail artisan migrate`, etc.
+</Tip>
+
+## Configuration Options
+
+### Cache Configuration
+
+Optimize performance with configuration caching:
+
+```bash
+# Cache configuration files
+php artisan config:cache
+
+# Cache routes
+php artisan route:cache
+
+# Cache views
+php artisan view:cache
+```
+
+<Warning>
+  Configuration caching is recommended for production only. In development, changes to `.env` won't take effect until you clear the cache with `php artisan config:clear`.
+</Warning>
+
+### Logging Configuration
+
+The application uses Laravel's logging system. Configure in `.env`:
+
+```bash
+LOG_CHANNEL=stack
+LOG_DEPRECATIONS_CHANNEL=null
+LOG_LEVEL=debug
+```
+
+Available log levels: `debug`, `info`, `notice`, `warning`, `error`, `critical`, `alert`, `emergency`
+
+### Session Configuration
+
+Default session settings in `.env`:
+
+```bash
+SESSION_DRIVER=file
+SESSION_LIFETIME=120  # Minutes
+```
+
+## Production Deployment
+
+When deploying to production:
+
+<Steps>
+  <Step title="Set Environment to Production">
+    ```bash
+    APP_ENV=production
+    APP_DEBUG=false
+    ```
+  </Step>
+
+  <Step title="Optimize Application">
+    ```bash
+    composer install --optimize-autoloader --no-dev
+    php artisan config:cache
+    php artisan route:cache
+    php artisan view:cache
+    ```
+  </Step>
+
+  <Step title="Build Production Assets">
+    ```bash
+    npm run build
+    ```
+  </Step>
+
+  <Step title="Set Secure Permissions">
+    ```bash
+    chmod -R 755 storage bootstrap/cache
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+  Always use HTTPS in production and keep `APP_DEBUG=false` to prevent sensitive information disclosure.
+</Warning>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Class not found errors">
+    Regenerate the autoload files:
+
+    ```bash
+    composer dump-autoload
+    ```
+  </Accordion>
+
+  <Accordion title="Permission denied errors">
+    Ensure proper ownership and permissions:
+
+    ```bash
+    sudo chown -R $USER:www-data storage bootstrap/cache
+    sudo chmod -R 775 storage bootstrap/cache
+    ```
+  </Accordion>
+
+  <Accordion title="Database connection refused">
+    Verify MySQL is running:
+
+    ```bash
+    sudo systemctl status mysql
+    # or
+    brew services list | grep mysql
+    ```
+
+    Test connection manually:
+    ```bash
+    mysql -u root -p -h 127.0.0.1
+    ```
+  </Accordion>
+
+  <Accordion title="Migration errors">
+    Drop all tables and start fresh (development only):
+
+    ```bash
+    php artisan migrate:fresh --seed
+    ```
+
+    Or rollback and re-run:
+    ```bash
+    php artisan migrate:rollback
+    php artisan migrate
+    ```
+  </Accordion>
+
+  <Accordion title="Composer memory limit">
+    If Composer runs out of memory:
+
+    ```bash
+    php -d memory_limit=-1 /usr/local/bin/composer install
+    ```
+  </Accordion>
+
+  <Accordion title="Port already in use">
+    Find what's using the port:
+
+    ```bash
+    # On Linux/Mac
+    lsof -i :8000
+
+    # On Windows
+    netstat -ano | findstr :8000
+    ```
+
+    Use a different port:
+    ```bash
+    php artisan serve --port=8080
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart Guide" icon="rocket" href="/quickstart">
+    Jump straight into using the application
+  </Card>
+
+  <Card title="Database Schema" icon="database" href="/database/schema">
+    Learn about the database structure
+  </Card>
+
+  <Card title="API Routes" icon="route" href="/api/films/all-films">
+    Explore available API endpoints
+  </Card>
+
+  <Card title="Custom Middleware" icon="shield" href="/development/middleware">
+    Understand route protection and validation
+  </Card>
+</CardGroup>

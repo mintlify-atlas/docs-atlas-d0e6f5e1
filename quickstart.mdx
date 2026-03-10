@@ -1,80 +1,242 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: 'Quickstart'
+description: 'Get your Laravel Films & Actors application running in minutes'
+icon: 'rocket'
 ---
 
-## Get started in three steps
+## Welcome to Laravel Films & Actors
 
-Get your documentation site running locally and make your first customization.
-
-### Step 1: Set up your local environment
-
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
+This quickstart guide will help you clone the repository, set up the database, and start exploring the application with real film and actor data.
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  This application requires PHP 8.1+, Composer, and MySQL to run locally.
 </Note>
+
+## Quick Setup
+
+<Steps>
+  <Step title="Clone the Repository">
+    Clone the Laravel Films & Actors repository to your local machine:
+
+    ```bash
+    git clone <repository-url>
+    cd laravel-films-actors
+    ```
+  </Step>
+
+  <Step title="Install Dependencies">
+    Install PHP dependencies using Composer:
+
+    ```bash
+    composer install
+    ```
+
+    This will install:
+    - Laravel Framework 10.x
+    - Laravel Sanctum for API authentication
+    - Doctrine DBAL for database abstraction
+    - Development tools (PHPUnit, Laravel Pint, Faker)
+  </Step>
+
+  <Step title="Configure Environment">
+    Copy the example environment file and generate an application key:
+
+    ```bash
+    cp .env.example .env
+    php artisan key:generate
+    ```
+
+    Update your `.env` file with database credentials:
+
+    ```bash
+    DB_CONNECTION=mysql
+    DB_HOST=127.0.0.1
+    DB_PORT=3306
+    DB_DATABASE=laravel
+    DB_USERNAME=root
+    DB_PASSWORD=
+    ```
+
+    <Tip>
+      Make sure your MySQL server is running before proceeding to the next step.
+    </Tip>
+  </Step>
+
+  <Step title="Set Up Database">
+    Create the database and run migrations:
+
+    ```bash
+    # Create database (if not exists)
+    mysql -u root -e "CREATE DATABASE IF NOT EXISTS laravel;"
+
+    # Run migrations
+    php artisan migrate
+    ```
+
+    This creates three main tables:
+    - `films` - Stores film information (name, year, genre, country, duration, image URL)
+    - `actors` - Stores actor information (name, surname, birthdate, country, agency, image URL)
+    - `films_actor` - Pivot table linking films and actors (many-to-many relationship)
+  </Step>
+
+  <Step title="Seed Sample Data">
+    Populate the database with sample films and actors:
+
+    ```bash
+    php artisan db:seed
+    ```
+
+    This command runs the following seeders:
+    - **ActorFakeSeeder** - Creates 10 actors with realistic data using Faker
+    - **FilmFakeSeeder** - Creates 10 films across various genres (Acción, Drama, Comedia, Terror, Sci-Fi)
+    - **FilmsActorSeeder** - Creates relationships between films and actors
+
+    <Note>
+      The seeder uses Faker to generate realistic names, countries, and other data. Each run will produce different sample data.
+    </Note>
+  </Step>
+
+  <Step title="Start the Development Server">
+    Launch the Laravel development server:
+
+    ```bash
+    php artisan serve
+    ```
+
+    Your application will be available at `http://localhost:8000`
+  </Step>
+</Steps>
+
+## Explore the Application
+
+Once your server is running, you can access these routes:
+
+<CardGroup cols={2}>
+  <Card title="Home Page" icon="home" href="http://localhost:8000">
+    Main landing page of the application
+  </Card>
+
+  <Card title="Films Listing" icon="film" href="http://localhost:8000/filmout/allFilms">
+    View all films in the database
+  </Card>
+
+  <Card title="Actors Listing" icon="users" href="http://localhost:8000/allActors">
+    Browse all actors in the system
+  </Card>
+
+  <Card title="Old Films" icon="clock-rotate-left" href="http://localhost:8000/filmout/oldFilms">
+    Films released before 2000 (default year)
+  </Card>
+</CardGroup>
+
+## Example Routes to Try
+
+The application comes with several pre-configured routes you can test immediately:
+
+### Film Routes
+
+```bash
+# List films before a specific year
+http://localhost:8000/filmout/oldFilms/1990
+
+# List films after a specific year
+http://localhost:8000/filmout/newFilms/2000
+
+# List films by year
+http://localhost:8000/filmout/filmsByYear/2020
+
+# List films by genre
+http://localhost:8000/filmout/filmsByGenre/Drama
+
+# Count all films
+http://localhost:8000/filmout/countFilms
+
+# View films sorted by year (newest first)
+http://localhost:8000/filmout/sortFilms
+```
+
+### Actor Routes
+
+```bash
+# List all actors
+http://localhost:8000/allActors
+
+# List actors by decade
+http://localhost:8000/actorsByDecade/1980
+```
+
+<Tip>
+  All routes with the `/filmout` prefix are protected by a custom year validation middleware that ensures year parameters are within valid ranges.
+</Tip>
+
+## What's Next?
+
+<CardGroup cols={2}>
+  <Card title="Installation Guide" icon="screwdriver-wrench" href="/installation">
+    Detailed installation instructions and configuration options
+  </Card>
+
+  <Card title="API Routes" icon="code" href="/api/films/all-films">
+    Explore the available API endpoints
+  </Card>
+
+  <Card title="Database Schema" icon="database" href="/database/schema">
+    Understand the database structure and relationships
+  </Card>
+
+  <Card title="Middleware" icon="shield" href="/development/middleware">
+    Learn about custom middleware and validation
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Database connection error">
+    Ensure your MySQL server is running and credentials in `.env` are correct:
+
+    ```bash
+    # Test MySQL connection
+    mysql -u root -p
+    ```
+
+    Verify the database exists:
+    ```sql
+    SHOW DATABASES LIKE 'laravel';
+    ```
+  </Accordion>
+
+  <Accordion title="Migration fails">
+    If migrations fail, try resetting the database:
+
+    ```bash
+    php artisan migrate:fresh --seed
+    ```
+
+    <Warning>
+      This command drops all tables and re-runs migrations. Only use in development!
+    </Warning>
+  </Accordion>
+
+  <Accordion title="Composer install errors">
+    Make sure you have the required PHP version:
+
+    ```bash
+    php -v  # Should be 8.1 or higher
+    ```
+
+    Clear Composer cache and retry:
+    ```bash
+    composer clear-cache
+    composer install
+    ```
+  </Accordion>
+
+  <Accordion title="Port 8000 already in use">
+    Specify a different port when starting the server:
+
+    ```bash
+    php artisan serve --port=8080
+    ```
+  </Accordion>
+</AccordionGroup>

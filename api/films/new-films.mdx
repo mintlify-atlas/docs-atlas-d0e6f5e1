@@ -1,0 +1,128 @@
+---
+title: 'List New Films'
+api: 'GET /filmout/newFilms/{year?}'
+description: 'Retrieve films released on or after a specified year'
+---
+
+## Overview
+
+This endpoint returns all films from the database that were released on or after the specified year. If no year is provided, it defaults to 2000.
+
+## Endpoint
+
+```
+GET /filmout/newFilms/{year?}
+```
+
+## Path Parameters
+
+<ParamField path="year" type="integer" optional>
+  The cutoff year for filtering films. Only films released **on or after** this year will be returned.
+  
+  - **Default**: 2000
+  - **Validation**: Must be between 1900 and 2024 (enforced by ValidateYear middleware)
+  - **Example**: 2010
+</ParamField>
+
+## Middleware
+
+<Note>
+  This endpoint is protected by the `ValidateYear` middleware which validates that the year parameter (if provided) is:
+  - Numeric
+  - Between 1900 and 2024
+  
+  Invalid year values will redirect to the homepage.
+</Note>
+
+## Response
+
+Returns a rendered view (`films.list`) with the following data:
+
+<ResponseField name="films" type="array">
+  Array of film objects that match the filter criteria (year >= specified year)
+  
+  <ResponseField name="name" type="string">
+    The film's title
+  </ResponseField>
+  
+  <ResponseField name="year" type="integer">
+    The release year of the film
+  </ResponseField>
+  
+  <ResponseField name="genre" type="string">
+    The film's genre
+  </ResponseField>
+  
+  <ResponseField name="country" type="string">
+    Country of origin
+  </ResponseField>
+  
+  <ResponseField name="duration" type="string">
+    Film duration
+  </ResponseField>
+  
+  <ResponseField name="img_url" type="string">
+    URL to the film's poster image
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="title" type="string">
+  Display title for the view: "Listado de Pelis Nuevas (Después de {year})"
+</ResponseField>
+
+## Examples
+
+<CodeGroup>
+
+```bash Default (year 2000)
+curl http://localhost:8000/filmout/newFilms
+```
+
+```bash With specific year
+curl http://localhost:8000/filmout/newFilms/2015
+```
+
+```bash Recent films only
+curl http://localhost:8000/filmout/newFilms/2020
+```
+
+</CodeGroup>
+
+## Implementation Details
+
+- **Controller Method**: `FilmController::listNewFilms($year = null)`
+- **View**: `films.list`
+- **Route Name**: `newFilms`
+- **Filter Logic**: Returns films where `$film['year'] >= $year`
+
+<Warning>
+  If the year parameter is outside the range 1900-2024, the middleware will redirect to the homepage instead of returning an error response.
+</Warning>
+
+## Example Response Data
+
+When calling `/filmout/newFilms/2000`, the view receives:
+
+```json
+{
+  "films": [
+    {
+      "name": "Inception",
+      "year": 2010,
+      "genre": "Sci-Fi",
+      "country": "USA",
+      "duration": "148 min",
+      "img_url": "/images/inception.jpg"
+    },
+    {
+      "name": "The Dark Knight",
+      "year": 2008,
+      "genre": "Action",
+      "country": "USA",
+      "duration": "152 min",
+      "img_url": "/images/dark-knight.jpg"
+    }
+  ],
+  "title": "Listado de Pelis Nuevas (Después de 2000)"
+}
+```

@@ -1,0 +1,298 @@
+---
+title: 'Get Actors By Decade'
+api: 'GET /actorsByDecade/{year?}'
+description: 'Retrieve actors filtered by birth decade with optional year parameter'
+---
+
+## Overview
+
+This endpoint returns actors filtered by their birth decade. You can specify a decade year (e.g., 1950, 1960, 1970) to get actors born within that 10-year period. If no year is provided, it returns all actors.
+
+## Endpoint
+
+```
+GET /actorsByDecade/{year?}
+```
+
+## Middleware
+
+This endpoint is protected by the `actor` middleware (`ValidateURLActor`) which validates the year parameter.
+
+### Validation Rules
+
+<Warning>
+  If a year parameter is provided, it must meet these criteria:
+  - Must be numeric
+  - Must be greater than or equal to 1900
+  - Must be less than or equal to 2024
+  
+  Invalid years will redirect to the home page (`/`) and log an error.
+</Warning>
+
+## Request
+
+### Path Parameters
+
+<ParamField path="year" type="integer" optional>
+  The decade start year to filter actors by (e.g., 1950, 1960, 1970).
+  
+  - When provided: Returns actors born between `year` and `year + 9`
+  - When omitted: Returns all actors (no filtering)
+  - Must be between 1900 and 2024
+  - Must be numeric
+</ParamField>
+
+### Headers
+
+No special headers required.
+
+## Response
+
+Returns an HTML view with filtered actor data.
+
+<ResponseField name="actors" type="array">
+  Array of actor objects filtered by decade and ordered by birthdate (ascending)
+  
+  <ResponseField name="id" type="integer">
+    Unique actor identifier
+  </ResponseField>
+  
+  <ResponseField name="name" type="string">
+    Actor's first name
+  </ResponseField>
+  
+  <ResponseField name="surname" type="string">
+    Actor's last name
+  </ResponseField>
+  
+  <ResponseField name="birthdate" type="integer">
+    Year of birth
+  </ResponseField>
+  
+  <ResponseField name="country" type="string">
+    Country of origin
+  </ResponseField>
+  
+  <ResponseField name="agency" type="string">
+    Talent agency representation
+  </ResponseField>
+  
+  <ResponseField name="img_url" type="string">
+    URL to actor's profile image
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="title" type="string">
+  Dynamic page title based on filter:
+  - With decade: "Listado de actores nacidos en la década de {year} a {year+9}"
+  - Without decade: "Listado de todos los actores (sin filtrar por década)"
+</ResponseField>
+
+<ResponseField name="decades" type="array">
+  Array of all available decades in the database (e.g., [1950, 1960, 1970])
+</ResponseField>
+
+<ResponseField name="selectedDecade" type="integer|null">
+  The currently selected decade year, or `null` if no filter is applied
+</ResponseField>
+
+## Implementation Details
+
+### Controller Method
+
+Location: `app/Http/Controllers/ActorController.php:52`
+
+```php
+public function listActorsByDecade($year = null)
+{
+    $decades = ActorController::getAvailableDecades();
+
+    if (is_null($year)) {
+        $title = "Listado de todos los actores (sin filtrar por década)";
+        $actors = ActorController::readActors();
+    } else {
+        $endYear = $year + 9;
+        $title = "Listado de actores nacidos en la década de $year a $endYear";
+        $actors = Actor::whereBetween('birthdate', [$year, $endYear])
+                      ->orderBy('birthdate', 'asc')
+                      ->get()
+                      ->toArray();
+    }
+
+    return view("actors.list", [
+        "actors" => $actors, 
+        "title" => $title, 
+        "decades" => $decades,
+        "selectedDecade" => $year
+    ]);
+}
+```
+
+### Database Query
+
+When filtering by decade:
+
+```php
+Actor::whereBetween('birthdate', [$year, $year + 9])
+     ->orderBy('birthdate', 'asc')
+     ->get()
+     ->toArray()
+```
+
+When no year is provided:
+
+```php
+Actor::orderBy('birthdate', 'asc')->get()->toArray()
+```
+
+### Available Decades Calculation
+
+Location: `app/Http/Controllers/ActorController.php:18`
+
+```php
+public static function getAvailableDecades(): array
+{
+    $years = Actor::select('birthdate')
+                  ->distinct()
+                  ->orderBy('birthdate', 'asc')
+                  ->pluck('birthdate')
+                  ->toArray();
+    $decades = [];
+    foreach ($years as $y) {
+        $decade = floor($y / 10) * 10;
+        if (!in_array($decade, $decades)) {
+            $decades[] = (int)$decade;
+        }
+    }
+    return $decades;
+}
+```
+
+### Route Definition
+
+Location: `routes/web.php:60`
+
+```php
+Route::middleware('actor')->group(function() {
+    Route::get('actorsByDecade/{year?}', [ActorController::class, "listActorsByDecade"])
+        ->name('actorsByDecade');
+});
+```
+
+### Middleware Validation
+
+Location: `app/Http/Middleware/ValidateURLActor.php:17`
+
+```php
+public function handle(Request $request, Closure $next)
+{
+    $year = $request->route('year');
+
+    if (isset($year)) {
+        if (!is_numeric($year) || $year < 1900 || $year > 2024) {
+            \Log::error("Invalid year range accessed in actor middleware: $year");
+            return redirect('/');
+        }
+    }
+
+    return $next($request);
+}
+```
+
+## Examples
+
+<CodeGroup>
+
+```bash All Actors (No Filter)
+curl -X GET "http://your-domain.com/actorsByDecade"
+```
+
+```bash Actors from 1960s
+curl -X GET "http://your-domain.com/actorsByDecade/1960"
+```
+
+```bash Actors from 1970s
+curl -X GET "http://your-domain.com/actorsByDecade/1970"
+```
+
+```javascript Fetch - 1980s Actors
+fetch('http://your-domain.com/actorsByDecade/1980')
+  .then(response => response.text())
+  .then(html => console.log(html));
+```
+
+```php PHP - 1990s Actors
+$response = Http::get('http://your-domain.com/actorsByDecade/1990');
+$html = $response->body();
+```
+
+</CodeGroup>
+
+## Response Behavior
+
+### Without Year Parameter
+
+```
+GET /actorsByDecade
+```
+
+- Returns all actors (no filtering)
+- Title: "Listado de todos los actores (sin filtrar por década)"
+- `selectedDecade`: `null`
+- Database query: All actors ordered by birthdate ASC
+
+### With Valid Year Parameter
+
+```
+GET /actorsByDecade/1970
+```
+
+- Returns actors born between 1970 and 1979
+- Title: "Listado de actores nacidos en la década de 1970 a 1979"
+- `selectedDecade`: `1970`
+- Database query: `whereBetween('birthdate', [1970, 1979])`
+
+### With Invalid Year Parameter
+
+```
+GET /actorsByDecade/1850  (too early)
+GET /actorsByDecade/2030  (too late)
+GET /actorsByDecade/abc   (not numeric)
+```
+
+- Redirects to home page (`/`)
+- Logs error: "Invalid year range accessed in actor middleware: {year}"
+- No view is rendered
+
+## Decade Range Calculation
+
+When you provide a year, the endpoint includes actors born in a 10-year range:
+
+- Year 1950 → Actors born 1950-1959
+- Year 1960 → Actors born 1960-1969
+- Year 1970 → Actors born 1970-1979
+- Year 1980 → Actors born 1980-1989
+- Year 1990 → Actors born 1990-1999
+- Year 2000 → Actors born 2000-2009
+
+<Note>
+  The endpoint calculates the end year as `$year + 9`, creating an inclusive 10-year range.
+</Note>
+
+## Related Endpoints
+
+- [Get All Actors](/api/actors/all-actors) - Retrieve all actors without filtering
+
+## Notes
+
+<Note>
+  The endpoint returns an HTML view (`actors.list`) rather than JSON. For API integration, consider requesting JSON responses or parsing the HTML output.
+</Note>
+
+<Note>
+  Actors are always sorted by birthdate in ascending order within their filtered decade.
+</Note>
+
+<Note>
+  The `decades` array in the response contains all available decades across the entire database, not just the selected decade. This allows users to see all filtering options.
+</Note>

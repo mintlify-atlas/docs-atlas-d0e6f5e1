@@ -1,0 +1,411 @@
+---
+title: 'Filtering & Validation'
+description: 'Middleware-based validation for year parameters and URL protection'
+icon: 'filter'
+---
+
+## Overview
+
+Laravel Films & Actors implements two custom middleware classes to validate and protect routes from invalid parameters. These middleware ensure data integrity and provide a better user experience by catching errors early.
+
+<Note>
+Both middleware classes validate year parameters but are applied to different route groups - `ValidateYear` for films and `ValidateURLActor` for actors.
+</Note>
+
+## Year Validation for Films
+
+The `ValidateYear` middleware protects film routes from invalid year parameters.
+
+### ValidateYear Middleware
+
+```php ValidateYear.php
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+
+class ValidateYear
+{
+    /**
+     * Handle an incoming request.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Closure(\Illuminate\Http\Request): (\Illuminate\Http\Response|\Illuminate\Http\RedirectResponse)  $next
+     * @return \Illuminate\Http\Response|\Illuminate\Http\RedirectResponse
+     */
+    public function handle(Request $request, Closure $next)
+    {
+        $year = $request->route('year');
+
+        // in case year is not numeric go to homepage
+        if(isset($year)){
+            if(is_null($year) || !is_numeric($year) || $year < 1900 || $year > 2024){
+                  \Log::error("Invalid year range accessed in middleware: $year");
+                  return redirect('/');
+            }
+        }
+
+        return $next($request);        
+    }
+}
+```
+
+### Validation Rules
+
+<CardGroup cols={2}>
+  <Card title="Numeric Check" icon="hashtag">
+    Year must be a numeric value
+  </Card>
+  <Card title="Minimum Year" icon="calendar-minus">
+    Year must be greater than or equal to 1900
+  </Card>
+  <Card title="Maximum Year" icon="calendar-plus">
+    Year must be less than or equal to 2024
+  </Card>
+  <Card title="Null Handling" icon="ban">
+    Optional parameters (null) are allowed
+  </Card>
+</CardGroup>
+
+### Protected Routes
+
+The middleware is applied to all film routes under the `filmout` prefix:
+
+```php routes/web.php
+Route::middleware('year')->group(function() {
+    Route::group(['prefix'=>'filmout'], function(){
+        Route::get('oldFilms/{year?}', [FilmController::class, "listOldFilms"])
+            ->name('oldFilms');
+        Route::get('newFilms/{year?}', [FilmController::class, "listNewFilms"])
+            ->name('newFilms');
+        Route::get('filmsByYear/{year?}', [FilmController::class, "listFilmsByYear"])
+            ->name('filmsByYear');
+        Route::get('filmsByGenre/{genre?}', [FilmController::class, "listFilmsByGenre"])
+            ->name('filmsByGenre');
+        Route::get('/countFilms', [FilmController::class, 'countFilms']);
+        Route::get('/sortFilms', [FilmController::class, 'sortFilms']);
+    });
+});
+```
+
+<Tabs>
+  <Tab title="Valid Requests">
+    ```bash
+    # Valid year parameters
+    GET /filmout/oldFilms/2000       # ✓ Valid
+    GET /filmout/newFilms/1950       # ✓ Valid
+    GET /filmout/filmsByYear/2024    # ✓ Valid
+    GET /filmout/oldFilms            # ✓ Valid (null allowed)
+    ```
+  </Tab>
+
+  <Tab title="Invalid Requests">
+    ```bash
+    # Invalid year parameters - all redirect to /
+    GET /filmout/oldFilms/1800       # ✗ Year < 1900
+    GET /filmout/newFilms/2030       # ✗ Year > 2024
+    GET /filmout/filmsByYear/abc     # ✗ Not numeric
+    GET /filmout/oldFilms/-50        # ✗ Negative number
+    ```
+
+    <Warning>
+    All invalid requests are logged to Laravel's error log and redirect to the homepage.
+    </Warning>
+  </Tab>
+</Tabs>
+
+## Actor URL Validation
+
+The `ValidateURLActor` middleware protects actor routes with similar year validation logic.
+
+### ValidateURLActor Middleware
+
+```php ValidateURLActor.php
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+
+class ValidateURLActor
+{
+    /**
+     * Handle an incoming request.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Closure(\Illuminate\Http\Request): (\Illuminate\Http\Response|\Illuminate\Http\RedirectResponse)  $next
+     * @return \Illuminate\Http\Response|\Illuminate\Http\RedirectResponse
+     */
+    public function handle(Request $request, Closure $next)
+    {
+        $year = $request->route('year');
+
+        // Check if year is valid if it is set
+        if (isset($year)) {
+            if (!is_numeric($year) || $year < 1900 || $year > 2024) {
+                \Log::error("Invalid year range accessed in actor middleware: $year");
+                return redirect('/');
+            }
+        }
+
+        return $next($request);
+    }
+}
+```
+
+### Protected Routes
+
+The middleware is applied to actor routes:
+
+```php routes/web.php
+Route::middleware('actor')->group(function() {
+    Route::get('allActors', [ActorController::class, "listAllActors"])
+        ->name('allActors');
+    Route::get('actorsByDecade/{year?}', [ActorController::class, "listActorsByDecade"])
+        ->name('actorsByDecade');
+});
+```
+
+<Accordion title="Usage Examples for Actors">
+  **Valid Requests:**
+  ```bash
+  GET /allActors                # ✓ No year parameter
+  GET /actorsByDecade/1980      # ✓ Valid decade
+  GET /actorsByDecade/1970      # ✓ Valid decade
+  GET /actorsByDecade           # ✓ Null allowed
+  ```
+
+  **Invalid Requests:**
+  ```bash
+  GET /actorsByDecade/1850      # ✗ Year < 1900
+  GET /actorsByDecade/2050      # ✗ Year > 2024
+  GET /actorsByDecade/xyz       # ✗ Not numeric
+  ```
+</Accordion>
+
+## Middleware Comparison
+
+### Similarities
+
+Both middleware classes share the same core validation logic:
+
+<CardGroup cols={3}>
+  <Card title="Year Range" icon="calendar">
+    1900 - 2024 allowed
+  </Card>
+  <Card title="Numeric Check" icon="calculator">
+    Must be numeric value
+  </Card>
+  <Card title="Redirect on Error" icon="right-from-bracket">
+    Invalid requests go to `/`
+  </Card>
+</CardGroup>
+
+### Differences
+
+| Feature | ValidateYear | ValidateURLActor |
+|---------|--------------|------------------|
+| **Applied To** | Film routes (`filmout/*`) | Actor routes (`allActors`, `actorsByDecade`) |
+| **Middleware Alias** | `year` | `actor` |
+| **Null Check** | `is_null($year) \|\|` included | No explicit null check |
+| **Error Log Message** | "Invalid year range accessed in middleware" | "Invalid year range accessed in actor middleware" |
+
+<Note>
+The slight difference in null checking doesn't affect behavior since both allow optional year parameters through `{year?}` route syntax.
+</Note>
+
+## Error Logging
+
+Both middleware log validation failures to Laravel's error log:
+
+```php
+\Log::error("Invalid year range accessed in middleware: $year");
+```
+
+### Viewing Error Logs
+
+<Tabs>
+  <Tab title="Local Development">
+    ```bash
+    # View Laravel log file
+    tail -f storage/logs/laravel.log
+
+    # Example log entry
+    [2024-03-10 14:23:45] local.ERROR: Invalid year range accessed in middleware: 1850
+    ```
+  </Tab>
+
+  <Tab title="Production">
+    ```bash
+    # Production logs location
+    /var/www/html/storage/logs/laravel.log
+
+    # Monitor in real-time
+    tail -f storage/logs/laravel-$(date +%Y-%m-%d).log
+    ```
+  </Tab>
+</Tabs>
+
+## Additional Validation
+
+Beyond middleware, the application includes controller-level validation for film creation:
+
+### Film Creation Validation
+
+```php FilmController.php
+// Year validation during film creation
+$year = (int)$_POST['year'];
+if ($year < 1900 || $year > 2024) {
+    \Log::error("Attempted to add film with invalid year: $year");
+    return view('welcome', [
+        'error' => 'El año de la película debe estar entre 1900 y 2024'
+    ]);
+}
+```
+
+<Warning>
+This provides **double validation**: middleware protects routes, and controllers validate data before saving.
+</Warning>
+
+### Duplicate Film Check
+
+The film creation also validates against duplicates:
+
+```php FilmController.php
+foreach ($films as $film) {
+    if (strcasecmp($film['name'], $_POST['name']) === 0) {
+        return view('welcome', [
+            'error' => 'La película ya existe en la lista'
+        ]);
+    }
+}
+```
+
+## Middleware Registration
+
+To use these middleware, they must be registered in `app/Http/Kernel.php`:
+
+```php Kernel.php
+protected $routeMiddleware = [
+    // ... other middleware
+    'year' => \App\Http\Middleware\ValidateYear::class,
+    'actor' => \App\Http\Middleware\ValidateURLActor::class,
+];
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Early Validation" icon="shield-check">
+    Middleware catches errors before reaching controllers, improving performance
+  </Card>
+  <Card title="Consistent Logging" icon="file-lines">
+    All validation failures are logged for monitoring and debugging
+  </Card>
+  <Card title="User Experience" icon="face-smile">
+    Redirects provide clean error handling instead of 404 or 500 errors
+  </Card>
+  <Card title="Security" icon="lock">
+    Prevents SQL injection and invalid data from reaching the database
+  </Card>
+</CardGroup>
+
+## Testing Validation
+
+<Accordion title="Manual Testing Steps">
+  1. **Test valid years:**
+     ```bash
+     curl http://localhost/filmout/oldFilms/2000
+     curl http://localhost/actorsByDecade/1980
+     ```
+
+  2. **Test invalid years:**
+     ```bash
+     curl -L http://localhost/filmout/oldFilms/1800
+     # Should redirect to homepage
+     ```
+
+  3. **Test non-numeric input:**
+     ```bash
+     curl -L http://localhost/actorsByDecade/abc
+     # Should redirect to homepage
+     ```
+
+  4. **Check error logs:**
+     ```bash
+     tail -n 20 storage/logs/laravel.log
+     ```
+</Accordion>
+
+## Route Protection Summary
+
+<Tabs>
+  <Tab title="Film Routes">
+    Protected by `ValidateYear` middleware:
+    
+    - `/filmout/oldFilms/{year?}`
+    - `/filmout/newFilms/{year?}`
+    - `/filmout/filmsByYear/{year?}`
+    - `/filmout/filmsByGenre/{genre?}`
+    - `/filmout/countFilms`
+    - `/filmout/sortFilms`
+  </Tab>
+
+  <Tab title="Actor Routes">
+    Protected by `ValidateURLActor` middleware:
+    
+    - `/allActors`
+    - `/actorsByDecade/{year?}`
+  </Tab>
+
+  <Tab title="Unprotected Routes">
+    No middleware validation:
+    
+    - `/` (homepage)
+    - `/films` (film welcome page)
+    - `/actors` (actor welcome page)
+    - `POST /filmin/add-film` (has controller validation)
+  </Tab>
+</Tabs>
+
+## Extending Validation
+
+To add custom validation logic:
+
+```php
+// Example: Add genre validation
+public function handle(Request $request, Closure $next)
+{
+    $year = $request->route('year');
+    $genre = $request->route('genre');
+
+    // Validate year
+    if (isset($year)) {
+        if (!is_numeric($year) || $year < 1900 || $year > 2024) {
+            \Log::error("Invalid year: $year");
+            return redirect('/');
+        }
+    }
+
+    // Validate genre
+    if (isset($genre)) {
+        $validGenres = ['action', 'drama', 'comedy', 'thriller'];
+        if (!in_array(strtolower($genre), $validGenres)) {
+            \Log::error("Invalid genre: $genre");
+            return redirect('/');
+        }
+    }
+
+    return $next($request);
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Film Management" icon="film" href="/features/films">
+    Learn how validated years are used in film filtering
+  </Card>
+  <Card title="Actor Management" icon="user" href="/features/actors">
+    Understand decade filtering with validated year parameters
+  </Card>
+</CardGroup>
