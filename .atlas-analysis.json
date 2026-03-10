@@ -1,0 +1,67 @@
+{
+  "projectType": "saas",
+  "projectName": "Laravel Films & Actors",
+  "projectDescription": "A Laravel-based web application for managing and browsing films and actors with filtering, sorting, and database capabilities.",
+  "theme": "maple",
+  "primaryColor": "#FF2D20",
+  "lightColor": "#FFECE8",
+  "darkColor": "#8B0000",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": ["introduction", "quickstart", "installation"]
+          },
+          {
+            "group": "Core Features",
+            "pages": ["features/films", "features/actors", "features/filtering"]
+          },
+          {
+            "group": "Development",
+            "pages": ["development/routes", "development/middleware", "development/controllers", "development/models"]
+          },
+          {
+            "group": "Database",
+            "pages": ["database/schema", "database/migrations", "database/seeders"]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Film Endpoints",
+            "pages": ["api/films/old-films", "api/films/new-films", "api/films/all-films", "api/films/by-year", "api/films/by-genre", "api/films/count", "api/films/sort", "api/films/create"]
+          },
+          {
+            "group": "Actor Endpoints",
+            "pages": ["api/actors/all-actors", "api/actors/by-decade"]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Film catalog management with JSON storage and database support",
+    "Actor directory with database-driven listings",
+    "Advanced filtering by year, genre, and decade",
+    "Custom middleware for year validation",
+    "Film and actor relationship tracking",
+    "Sorting and counting capabilities"
+  ],
+  "publicApiSurface": [
+    "GET /filmout/oldFilms/{year?}",
+    "GET /filmout/newFilms/{year?}",
+    "GET /filmout/allFilms/{year?}/{genre?}",
+    "GET /filmout/filmsByYear/{year?}",
+    "GET /filmout/filmsByGenre/{genre?}",
+    "GET /filmout/countFilms",
+    "GET /filmout/sortFilms",
+    "POST /filmin/add-film",
+    "GET /allActors",
+    "GET /actorsByDecade/{year?}"
+  ]
+}
